@@ -12,7 +12,7 @@ import KafkaConsumer._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ Awaitable, CanAwait, ExecutionContext, Future }
+import scala.concurrent._
 import scala.util.{ Failure, Success }
 
 /**
@@ -28,14 +28,7 @@ class KafkaConsumer[K, V] private[kafka](
   commitStrategy: CommitStrategy
 ) {
 
-  private implicit val executor = ExecutionContext.fromExecutor(
-    Executors.newCachedThreadPool((r: Runnable) => new Thread(r) {
-      val threadNumber = new AtomicInteger(0)
-      setName(s"${this.getClass.getSimpleName}-thread" + threadNumber.incrementAndGet())
-      setDaemon(true)
-    })
-  )
-
+  import ru.dokwork.easy.kafka.KafkaConsumer.executor
 
   /**
    * Start poll kafka from specified topics in the new thread and invoke handler for each records
@@ -151,6 +144,14 @@ class KafkaConsumer[K, V] private[kafka](
 }
 
 object KafkaConsumer {
+
+  private[kafka] implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(
+    Executors.newCachedThreadPool((r: Runnable) => new Thread(r) {
+      val threadNumber = new AtomicInteger(0)
+      setName(s"${this.getClass.getSimpleName}-thread-" + threadNumber.incrementAndGet())
+      setDaemon(true)
+    })
+  )
 
   type RecordHandler[K, V] = (ConsumerRecord[K, V]) => Future[Unit]
 

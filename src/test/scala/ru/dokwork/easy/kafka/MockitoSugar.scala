@@ -24,6 +24,21 @@ trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
     Mockito.timeout(duration.toMillis.toInt)
   }
 
+  implicit def Answer0[T](f: () => T) = new Answer[T] {
+    override def answer(invocation: InvocationOnMock) = f.apply()
+  }
+
+  implicit def Answer1[A, T](f: (A) => T) = new Answer[T] {
+    override def answer(i: InvocationOnMock) = f.apply(i.getArguments()(0).asInstanceOf[A])
+  }
+
+  implicit def Answer2[A, B, T](f: (A, B) => T) = new Answer[T] {
+    override def answer(i: InvocationOnMock) = f.apply(
+      i.getArguments()(0).asInstanceOf[A],
+      i.getArguments()(1).asInstanceOf[B],
+    )
+  }
+
   /**
    * Use `doLazyReturn()` when you want to stub a method that should return lazy
    * computed result.
