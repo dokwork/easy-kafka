@@ -150,7 +150,7 @@ class KafkaConsumer[K, V] private[kafka](
      * @return future that will be completed after last polling completed.
      */
     override def stop(): Future[Unit] = {
-      log.info(s"Stop poll topics [${topics.mkString(", ")}]")
+      if (isStarted.get()) log.info(s"Stop poll topics [${topics.mkString(", ")}]")
       isStarted.set(false)
       consumer.wakeup()
       polling
