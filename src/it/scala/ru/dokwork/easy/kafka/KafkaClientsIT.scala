@@ -158,7 +158,7 @@ class KafkaClientsIT extends FeatureSpec
     }
   }
 
-  private def await(w: Awaitable[_]) = Await.result(w, 30.second)
+  private def await(w: Awaitable[_]) = Await.result(w, 2.minutes)
 
   private object Timer extends java.util.Timer(true) {
     def schedule(period: Duration)(f: => Unit): Unit = {
