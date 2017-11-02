@@ -3,13 +3,15 @@ package ru.dokwork.easy.kafka
 import org.apache.kafka.clients.producer.{ Callback, Producer, ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.TopicPartition
 import org.mockito.Mockito._
-import org.scalatest.FreeSpec
+import org.scalatest.{ FreeSpec, Matchers }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Awaitable }
 
 
-class KafkaProducerSpec extends FreeSpec with MockitoSugar {
+class KafkaProducerSpec extends FreeSpec
+  with Matchers
+  with MockitoSugar {
 
   type K = String
   type V = String
@@ -20,20 +22,33 @@ class KafkaProducerSpec extends FreeSpec with MockitoSugar {
 
   trait Fixture {
     val javaProducer = mock[Producer[K, V]]
-    when(javaProducer.send(any[ProducerRecord[K, V]], any[Callback]))
-      .thenAnswer((_: ProducerRecord[K, V], callback: Callback) => {
-        callback.onCompletion(stubMetadata, null)
-        mock[java.util.concurrent.Future[RecordMetadata]]
-      })
     val producer = new KafkaProducer[K, V](javaProducer)
   }
 
   "KafkaProducer" - {
-    "should invoke method send(ProducerRecord<K,V>, Callback)" in new Fixture {
+    "should return Future with RecordMetadata after successfully sent" in new Fixture {
+      // given:
+      when(javaProducer.send(any[ProducerRecord[K, V]], any[Callback]))
+        .thenAnswer((_: ProducerRecord[K, V], callback: Callback) => {
+          callback.onCompletion(stubMetadata, null)
+          mock[java.util.concurrent.Future[RecordMetadata]]
+        })
       // when:
-      await(producer.send("topic", "Hello!"))
+      val result = await(producer.send("topic", "Hello!"))
       // then:
-      verify(javaProducer).send(any[ProducerRecord[K, V]], any[Callback])
+      result should be(stubMetadata)
+    }
+    "should return failed Future after exception on send data to the Kafka" in new Fixture {
+      // given:
+      when(javaProducer.send(any[ProducerRecord[K, V]], any[Callback]))
+        .thenAnswer((_: ProducerRecord[K, V], callback: Callback) => {
+          callback.onCompletion(null, TestException())
+          mock[java.util.concurrent.Future[RecordMetadata]]
+        })
+      // when:
+      intercept[TestException] {
+        await(producer.send("topic", "Hello!"))
+      }
     }
   }
 }
