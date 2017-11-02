@@ -169,7 +169,7 @@ object KafkaConsumer {
   private[kafka] implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(
     Executors.newCachedThreadPool((r: Runnable) => new Thread(r) {
       val threadNumber = new AtomicInteger(0)
-      setName(s"${this.getClass.getSimpleName}-thread-" + threadNumber.incrementAndGet())
+      setName("kafka-consumer-thread-" + threadNumber.incrementAndGet())
       setDaemon(true)
     })
   )

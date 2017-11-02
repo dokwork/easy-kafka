@@ -25,8 +25,6 @@ class KafkaClientsIT extends FeatureSpec
   val conf = ConfigFactory.defaultApplication()
   val bootstrapServer = s"${conf.getString("kafka.host")}:${conf.getInt("kafka.port")}"
   info("BOOTSTRAP: " + bootstrapServer)
-  val kafkaKey = hashCode.toString
-  info(s"kafkaKey for this run is $kafkaKey")
 
   val producerBuilder = Kafka.producer[String, String]
     .withBootstrapServers(Seq(bootstrapServer))
@@ -41,6 +39,9 @@ class KafkaClientsIT extends FeatureSpec
     .finalizeEveryPollWithin(30.seconds)
 
   feature("Send and poll messages") {
+    val key = hashCode.toString
+    info(s"Kafka key for this run is $key")
+
     Given("Topic: KafkaClientsIT_Smoke")
     val topic = "KafkaClientsIT_Smoke"
 
@@ -56,7 +57,7 @@ class KafkaClientsIT extends FeatureSpec
       val consumer = consumerBuilder.build
       val receivedMessages = mutable.Buffer[String]()
       lazy val polling: KafkaConsumer.Polling = consumer.poll(Seq(topic)) { record =>
-        if (record.key() == kafkaKey) {
+        if (record.key() == key) {
           receivedMessages.append(record.value())
           if (record.value() == lastMessage) polling.stop()
         }
@@ -64,7 +65,7 @@ class KafkaClientsIT extends FeatureSpec
       }
 
       When("All messages will be sent to the Kafka")
-      val produce: Seq[Future[RecordMetadata]] = messages.map(producer.send(topic, kafkaKey, _))
+      val produce: Seq[Future[RecordMetadata]] = messages.map(producer.send(topic, key, _))
       await(Future.sequence(produce))
 
       Then("Begin poll messages")
@@ -76,6 +77,9 @@ class KafkaClientsIT extends FeatureSpec
   }
 
   feature("Commit after every poll") {
+    val key = hashCode.toString
+    info(s"Kafka key for this run is $key")
+
     Given("Topic: KafkaClientsIT_Commit")
     val topic = "KafkaClientsIT_Commit"
     val sendPeriod = 300.milliseconds
@@ -93,11 +97,11 @@ class KafkaClientsIT extends FeatureSpec
       val producer = producerBuilder.build
       val i = new AtomicInteger(0)
       Timer.schedule(sendPeriod) {
-        await(producer.send(topic, kafkaKey, s"message_" + i.incrementAndGet()))
+        await(producer.send(topic, key, s"message_" + i.incrementAndGet()))
       }
 
       Given("First kafka polling which saves all polled messages to the buffer")
-      val (firstPolling, firstReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout)
+      val (firstPolling, firstReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout, key)
 
       When("Received at least 3 records")
       while (firstReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
@@ -105,7 +109,7 @@ class KafkaClientsIT extends FeatureSpec
       Then("Complete first polling and begin a new one")
       await(firstPolling.stop())
       info(s"...polled ${firstReceivedMessages.size} messages")
-      val (secondPolling, secondReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout)
+      val (secondPolling, secondReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout, key)
 
       When("Received at least 3 records again then stop second poling")
       while (secondReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
@@ -118,6 +122,9 @@ class KafkaClientsIT extends FeatureSpec
   }
 
   feature("Do not commit after every poll") {
+    val key = hashCode.toString
+    info(s"Kafka key for this run is $key")
+
     Given("Topic: KafkaClientsIT_NotCommit")
     val topic = "KafkaClientsIT_NotCommit"
     val sendPeriod = 300.milliseconds
@@ -135,11 +142,11 @@ class KafkaClientsIT extends FeatureSpec
       val producer = producerBuilder.build
       val i = new AtomicInteger(0)
       Timer.schedule(sendPeriod) {
-        await(producer.send(topic, kafkaKey, s"message_" + i.incrementAndGet()))
+        await(producer.send(topic, key, s"message_" + i.incrementAndGet()))
       }
 
       Given("First kafka polling which saves all polled messages to the buffer")
-      val (firstPolling, firstReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout)
+      val (firstPolling, firstReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout, key)
 
       When("Received at least 1 record")
       while (firstReceivedMessages.isEmpty) Thread.sleep(pollTimeout.toMillis * 2)
@@ -147,7 +154,7 @@ class KafkaClientsIT extends FeatureSpec
       Then("Complete first polling and begin a new one")
       await(firstPolling.stop())
       info(s"...polled ${firstReceivedMessages.size} messages")
-      val (secondPolling, secondReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout)
+      val (secondPolling, secondReceivedMessages) = createPollingWithBuffer(consumer, topic, pollTimeout, key)
 
       When("Received more records than first time and stop poling")
       while (secondReceivedMessages.size < firstReceivedMessages.size) Thread.sleep(pollTimeout.toMillis * 2)
@@ -158,7 +165,7 @@ class KafkaClientsIT extends FeatureSpec
     }
   }
 
-  private def await(w: Awaitable[_]) = Await.result(w, 2.minutes)
+  private def await(w: Awaitable[_]) = Await.result(w, 1.minute)
 
   private object Timer extends java.util.Timer(true) {
     def schedule(period: Duration)(f: => Unit): Unit = {
@@ -171,12 +178,13 @@ class KafkaClientsIT extends FeatureSpec
   private def createPollingWithBuffer(
     consumer: KafkaConsumer[String, String],
     topic: String,
-    pollTimeout: Duration
+    pollTimeout: Duration,
+    key: String
   ) = {
     val receivedMessages = mutable.Buffer[String]()
 
     lazy val polling = consumer.poll(Seq(topic), pollTimeout) { record =>
-      Future(if (record.key() == kafkaKey) receivedMessages.append(record.value()))
+      Future(if (record.key() == key) receivedMessages.append(record.value()))
     }
     (polling, receivedMessages)
   }
