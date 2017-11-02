@@ -21,11 +21,6 @@ class KafkaConsumerSpec extends FreeSpec
 
   private def await(w: Awaitable[_]) = Await.result(w, 1.second)
 
-  /**
-   * Создает имитацию [[org.apache.kafka.clients.consumer.Consumer]]
-   * который на каждый поллинг возвращает итератор с одной записью из
-   * [[ConsumerFactory#recordsInKafa()]]
-   */
   trait ConsumerFactory {
     def recordsInKafka: Seq[ConsumerRecord[K, V]] = Seq.empty
 

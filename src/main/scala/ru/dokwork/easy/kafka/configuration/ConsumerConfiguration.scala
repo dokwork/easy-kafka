@@ -27,7 +27,7 @@ private[configuration] trait ConsumerConfiguration[K, V, BS <: IsDefined, KD <: 
    * to the Kafka cluster. Must be defined.
    */
   final def withBootstrapServers(bootstrapServers: => Seq[String]) = {
-    val p = params[configuration.BootstrapServers].copy(bootstrapServers)
+    val p = params.get[configuration.BootstrapServers].copy(bootstrapServers)
     configure(params + p)
       .asInstanceOf[KafkaConsumerConfiguration[K, V, Defined, KD, VD, GID]]
   }
@@ -36,7 +36,7 @@ private[configuration] trait ConsumerConfiguration[K, V, BS <: IsDefined, KD <: 
    * Adds the group id to the kafka properties. Must be defined.
    */
   final def withGroupId(groupId: String) = {
-    val p = params[GroupId].copy(Some(groupId))
+    val p = params.get[GroupId].copy(Some(groupId))
     configure(params + p)
       .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, KD, VD, Defined]]
   }
@@ -61,7 +61,7 @@ private[configuration] trait ConsumerConfiguration[K, V, BS <: IsDefined, KD <: 
    * Specifies [[org.apache.kafka.clients.consumer.OffsetResetStrategy offset reset strategy]] for consumer.
    */
   def withOffsetResetStrategy(strategy: kafka.OffsetResetStrategy) = {
-    val p = params[configuration.OffsetResetStrategy].copy(strategy)
+    val p = params.get[configuration.OffsetResetStrategy].copy(strategy)
     configure(params + p)
   }
 

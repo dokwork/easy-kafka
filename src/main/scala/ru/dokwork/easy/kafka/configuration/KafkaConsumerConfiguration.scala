@@ -5,6 +5,9 @@ import org.apache.kafka.common.serialization.Deserializer
 import ru.dokwork.easy.kafka.KafkaConsumer
 import ru.dokwork.easy.kafka.KafkaConsumer._
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 /**
  * Configuration for the [[ru.dokwork.easy.kafka.KafkaConsumer]].
  *
@@ -21,6 +24,7 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
   override protected val valueDeserializer: Deserializer[V] = null
 ) extends ConsumerConfiguration[K, V, BS, KD, VD, GID, KafkaConsumer[K, V]] {
 
+  private type CurrentConfiguration = KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]
 
   /**
    * Specifies a default commit strategy. Default is
@@ -35,23 +39,38 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
      *
      * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
      */
-    def AutoCommit = setCommitStrategy(AutoCommitStrategy)
+    def AutoCommit: CurrentConfiguration = setCommitStrategy(AutoCommitStrategy)
 
     /**
      * If this strategy selected then all records which were polled and successfully handled
      * will be committed before next poll.
      */
-    def CommitEveryPoll = setCommitStrategy(CommitEveryPollStrategy)
+    def CommitEveryPoll: CurrentConfiguration = setCommitStrategy(CommitEveryPollStrategy)
 
     /**
      * If this strategy selected then nothing will be committed.
      */
-    def DoNotCommit = setCommitStrategy(DoNotCommitStrategy)
+    def DoNotCommit: CurrentConfiguration = setCommitStrategy(DoNotCommitStrategy)
 
-    private def setCommitStrategy(strategy: KafkaConsumer.CommitStrategy) = {
-      val p = params[CommitStrategy].copy(strategy)
-      configure(params + p)
+    private def setCommitStrategy(strategy: KafkaConsumer.CommitStrategy): CurrentConfiguration = {
+      val p = params.get[CommitStrategy].copy(strategy)
+      configure(params + p, keyDeserializer, valueDeserializer)
     }
+  }
+
+  /**
+   * Adds [[java.lang.Runtime#addShutdownHook(java.lang.Thread) shutdown hook]] for
+   * [[ru.dokwork.easy.kafka.KafkaConsumer.Polling#stop() stop]] every
+   * polling when JVM is shutting down.
+   *
+   * @param closeTimeout max time to wait polling.
+   */
+  def finalizeEveryPollWithin(closeTimeout: Duration): CurrentConfiguration = {
+    val hook = (p: Polling) => new Runnable {
+        override def run(): Unit = Await.result(p.stop(), closeTimeout)
+    }
+    val p = params.get[ShutdownHook].copy(hook = Some(hook))
+    configure(params + p, keyDeserializer, valueDeserializer)
   }
 
   override protected def build(
@@ -59,22 +78,21 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     keyDeserializer: Deserializer[K],
     valueDeserializer: Deserializer[V]
   ): KafkaConsumer[K, V] = {
-    def createConsumer() = {
+    def factory() = {
       new kafka.KafkaConsumer[K, V](
         properties(),
         keyDeserializer,
         valueDeserializer
       )
     }
-
-    new KafkaConsumer[K, V](createConsumer, params[CommitStrategy].strategy)
+    new KafkaConsumer[K, V](factory, params.get[CommitStrategy].strategy, params.get[ShutdownHook].hook)
   }
 
   override protected def configure[BS1 <: IsDefined, KD1 <: IsDefined, VD1 <: IsDefined, GID1 <: IsDefined](
     params: Parameters,
     keyDeserializer: Deserializer[K],
     valueDeserializer: Deserializer[V]
-  ) = {
+  ): KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1] = {
     new KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1](params, keyDeserializer, valueDeserializer)
   }
 

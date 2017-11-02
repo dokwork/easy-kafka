@@ -5,14 +5,14 @@ trait Parameter[A] {
 }
 
 trait Parameters extends Iterable[(Parameter[_], Any)] {
-  def apply[A](implicit p: Parameter[A]): A
+  def get[A](implicit p: Parameter[A]): A
   def +[A](value: A)(implicit p: Parameter[A]): Parameters
   def iterator: Iterator[(Parameter[_], Any)]
 }
 
 object Parameters {
   private case class Params(params: Map[Parameter[_], Any]) extends Parameters {
-    def apply[A](implicit p: Parameter[A]): A = params.getOrElse(p, p.default).asInstanceOf[A]
+    def get[A](implicit p: Parameter[A]): A = params.getOrElse(p, p.default).asInstanceOf[A]
     def +[A](value: A)(implicit p: Parameter[A]): Parameters = {
       copy(params + (p -> value))
     }

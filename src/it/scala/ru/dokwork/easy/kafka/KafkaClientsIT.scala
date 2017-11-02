@@ -20,7 +20,7 @@ class KafkaClientsIT extends FeatureSpec
   with Matchers 
   with TimeLimitedTests {
 
-  override def timeLimit = Span(3, Minutes)
+  override def timeLimit = Span(1, Minutes)
 
   private def await(w: Awaitable[_]) = Await.result(w, 15.second)
 
@@ -50,7 +50,7 @@ class KafkaClientsIT extends FeatureSpec
     .withGroupId("test")
     .withKeyDeserializer(new StringDeserializer())
     .withValueDeserializer(new StringDeserializer())
-
+    .finalizeEveryPollWithin(30.seconds)
 
   feature("Send and poll messages") {
     Given("Topic: KafkaClientsIT_Smoke")

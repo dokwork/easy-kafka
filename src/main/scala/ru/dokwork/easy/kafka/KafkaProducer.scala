@@ -5,7 +5,7 @@ import org.apache.kafka.clients.producer.{ Callback, Producer, ProducerRecord, R
 import scala.concurrent.{ Future, Promise }
 
 /**
- * This implementation return future when message was sent and doesn't need callback.
+ * Proxy class to the [[org.apache.kafka.clients.producer.Producer]] with async interface.
  *
  * @param producer java producer to Kafka.
  * @tparam K type of key.
