@@ -22,7 +22,7 @@ class KafkaClientsIT extends FeatureSpec
 
   override def timeLimit = Span(1, Minutes)
 
-  private def await(w: Awaitable[_]) = Await.result(w, 15.second)
+  private def await(w: Awaitable[_]) = Await.result(w, 30.second)
 
   private object Timer extends java.util.Timer(true) {
     def schedule(period: Duration)(f: => Unit): Unit = {
