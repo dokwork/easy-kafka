@@ -27,7 +27,7 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
    * to the Kafka cluster. Must be defined.
    */
   def withBootstrapServers(bootstrapServers: => Seq[String]) = {
-    val p = params[BootstrapServers].copy(bootstrapServers)
+    val p = params.get[BootstrapServers].copy(bootstrapServers)
     configure(params + p)
       .asInstanceOf[KafkaProducerConfiguration[K, V, Defined, KS, VS]]
   }
@@ -52,7 +52,7 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
    * Adds the client id to the kafka properties.
    */
   def withClientId(clientId: String) = {
-    val p = params.apply[ClientId].copy(Some(clientId))
+    val p = params.get[ClientId].copy(Some(clientId))
     configure(params + p)
   }
 

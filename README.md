@@ -122,3 +122,17 @@ val consumer: KafkaConsumer[String, String] = Kafka.utils.consumer[String, Strin
       .build
 ```
 Стратегия поумолчанию: `AutoCommitStrategy`.
+
+#### KafkaConsumer close on shutdown
+
+Для предотвращения ситуации, когда процесс полинга может быть прерван до/во время комита полученных
+и обработанных данных из-за закрытия JVM процесса, можно добавить ShutdownHook. Чтобы не делать
+этого руками, в билдере консюмера предусмотрена соответствующая опция:
+```scala
+val consumer: KafkaConsumer[String, String] = Kafka.consumer[String, String]
+      .withBootstrapServers(Seq("localhost:9092"))
+      ...
+      .finalizeEveryPollWithin(30.seconds)
+      ...
+      .build
+```

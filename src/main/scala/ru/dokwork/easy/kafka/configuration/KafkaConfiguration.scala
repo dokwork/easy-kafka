@@ -26,7 +26,7 @@ trait KafkaConfiguration[K, V, C <: KafkaConfiguration[K, V, C]] {
    * [[KafkaConfiguration#params()]].
    */
   def withProperties(properties: (String, String)*): C = {
-    val p = params[Properties].copy(properties.toMap)
+    val p = params.get[Properties].copy(properties.toMap)
     configure(params + p)
   }
 
@@ -45,7 +45,7 @@ trait KafkaConfiguration[K, V, C <: KafkaConfiguration[K, V, C]] {
       case (_, p: AsProperty) => p.asProperty.get
     }
 
-    val props = params[Properties].properties ++ params.view
+    val props = params.get[Properties].properties ++ params.view
       .filter(onlyDefinedProperties)
       .map(convertToProperty)
 

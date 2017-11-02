@@ -19,32 +19,42 @@ import scala.util.{ Failure, Success }
  *
  * @param consumerFactory factory of the java kafka consumer instance which will used
  *                        for poll kafka.
+ * @param commitStrategy  describes when consumed records should be committed.
+ * @param shutdownHook    function which will be invoked before JVM has been shut down
+ *                        for every polling.
  * @tparam K type of the key.
  * @tparam V type of the value.
  */
 class KafkaConsumer[K, V] private[kafka](
   consumerFactory: () => Consumer[K, V],
-  commitStrategy: CommitStrategy
+  commitStrategy: CommitStrategy,
+  shutdownHook: Option[(Polling) => Runnable] = None
 ) {
 
   /**
    * Start poll kafka from specified topics in the new thread and invoke handler for each records
    * which will be received from kafka after poll. Empty iterator will be skipped.
    *
-   * @param topics
-   * @param pollingTimeout The time, in milliseconds, spent waiting in poll if data is not available.
+   * @param topics         the list of topics to subscribe to
+   * @param pollingTimeout the time, in milliseconds, spent waiting in poll if data is not available.
    *                       If 0, returns immediately with any records that are available now.
-   *                       Must not be negative. Default is 100 ms.
+   *                       Must not be negative. Default is 300 ms.
    * @param handler        function for handle records which polled from kafka.
    *
-   * @return [[KafkaConsumer.Polling]] which indicate polling process. Invoke method close of this future will
-   *         stop polling. Never invoke close inside handler!.
+   * @return [[KafkaConsumer.Polling]] which indicate polling process.
+   *         Invoke stop method of this trait to break current poll.
    */
-  def poll(topics: Seq[String], pollingTimeout: Duration = 100 milliseconds)
+  def poll(topics: Seq[String], pollingTimeout: Duration = 300.milliseconds)
     (handler: RecordHandler[K, V]): KafkaConsumer.Polling = {
     val consumer = consumerFactory.apply()
     consumer.subscribe(topics.asJava)
-    new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
+    val polling = new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
+    shutdownHook.foreach { hook =>
+      val t = new Thread(hook(polling))
+      t.setName(s"shutdown-hook-[${topics.mkString(";")}]")
+      Runtime.getRuntime.addShutdownHook(t)
+    }
+    polling
   }
 
   private class PollingImpl(
@@ -119,11 +129,17 @@ class KafkaConsumer[K, V] private[kafka](
         Future.unit
     }
 
+    /**
+     * @inheritdoc
+     */
     override def ready(atMost: Duration)(implicit permit: CanAwait): PollingImpl.this.type = {
       polling.ready(atMost)
       this
     }
 
+    /**
+     * @inheritdoc
+     */
     override def result(atMost: Duration)(implicit permit: CanAwait): Unit = {
       polling.result(atMost)
     }
@@ -157,6 +173,10 @@ object KafkaConsumer {
 
   type OffsetMap = util.Map[TopicPartition, OffsetAndMetadata]
 
+  /**
+   * Polling is a trait which represent async process of consuming records from the kafka.
+   * This process can be awaited or stopped.
+   */
   trait Polling extends Awaitable[Unit] with Stoppable
 
   /**

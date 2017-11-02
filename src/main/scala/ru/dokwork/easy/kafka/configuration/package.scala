@@ -1,7 +1,7 @@
 package ru.dokwork.easy.kafka
 
 import org.apache.kafka.clients.consumer
-import ru.dokwork.easy.kafka.KafkaConsumer.AutoCommitStrategy
+import ru.dokwork.easy.kafka.KafkaConsumer.{ AutoCommitStrategy, Polling }
 
 import scala.annotation.implicitNotFound
 
@@ -33,7 +33,7 @@ package object configuration {
   sealed abstract class is[A, B]
 
   implicit object Properties extends Parameter[Properties] {
-    override val default: Properties = new Properties(Map())
+    override lazy val default: Properties = new Properties(Map())
   }
 
   case class Properties(properties: Map[String, String])
@@ -43,7 +43,7 @@ package object configuration {
   }
 
   implicit object BootstrapServers extends Parameter[BootstrapServers] {
-    override val default = BootstrapServers(Seq.empty)
+    override lazy val default = BootstrapServers(Seq.empty)
   }
 
   case class ClientId(clientId: Option[String]) extends AsProperty {
@@ -51,7 +51,7 @@ package object configuration {
   }
 
   implicit object ClientId extends Parameter[ClientId] {
-    override val default: ClientId = ClientId(None)
+    override lazy val default: ClientId = ClientId(None)
   }
 
   case class GroupId(groupId: Option[String]) extends AsProperty {
@@ -59,7 +59,7 @@ package object configuration {
   }
 
   implicit object GroupId extends Parameter[GroupId] {
-    override val default: GroupId = GroupId(None)
+    override lazy val default: GroupId = GroupId(None)
   }
 
   case class CommitStrategy(strategy: KafkaConsumer.CommitStrategy) extends AsProperty {
@@ -68,7 +68,7 @@ package object configuration {
   }
 
   implicit object CommitStrategy extends Parameter[CommitStrategy] {
-    override val default: CommitStrategy = CommitStrategy(AutoCommitStrategy)
+    override lazy val default: CommitStrategy = CommitStrategy(AutoCommitStrategy)
   }
 
   case class OffsetResetStrategy(offsetResetStrategy: consumer.OffsetResetStrategy) extends AsProperty {
@@ -77,6 +77,12 @@ package object configuration {
   }
 
   implicit object OffsetResetStrategy extends Parameter[OffsetResetStrategy] {
-    override val default: OffsetResetStrategy = OffsetResetStrategy(consumer.OffsetResetStrategy.LATEST)
+    override lazy val default: OffsetResetStrategy = OffsetResetStrategy(consumer.OffsetResetStrategy.LATEST)
+  }
+
+  case class ShutdownHook(hook: Option[(Polling) => Runnable])
+
+  implicit object ShutdownHook extends Parameter[ShutdownHook] {
+    override lazy val default: ShutdownHook = ShutdownHook(None)
   }
 }

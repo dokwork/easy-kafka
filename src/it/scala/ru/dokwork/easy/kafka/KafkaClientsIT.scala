@@ -1,7 +1,7 @@
 package ru.dokwork.easy.kafka
 
-import java.util.{ TimerTask, Timer => _ }
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.{ TimerTask, Timer => _ }
 
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -11,16 +11,16 @@ import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{ Minutes, Span }
 
 import scala.collection.mutable
-import scala.concurrent.{ Await, Awaitable, Future }
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Awaitable, Future }
 
-class KafkaClientsIT extends FeatureSpec 
-  with GivenWhenThen 
-  with Matchers 
+class KafkaClientsIT extends FeatureSpec
+  with GivenWhenThen
+  with Matchers
   with TimeLimitedTests {
 
-  override def timeLimit = Span(3, Minutes)
+  override def timeLimit = Span(1, Minutes)
 
   private def await(w: Awaitable[_]) = Await.result(w, 15.second)
 
@@ -32,7 +32,10 @@ class KafkaClientsIT extends FeatureSpec
     }
   }
 
-//  def info(str: String) = println(str)
+  //  def info(str: String) = println(str)
+  //  override def Given(message: String)(implicit pos: Position): Unit = println("Given: " + message)
+  //  override def When(message: String)(implicit pos: Position): Unit = println("When: " + message)
+  //  override def Then(message: String)(implicit pos: Position): Unit = println("Then: " + message)
 
   val conf = ConfigFactory.defaultApplication()
   val bootstrapServer = s"${conf.getString("kafka.host")}:${conf.getInt("kafka.port")}"
@@ -50,7 +53,7 @@ class KafkaClientsIT extends FeatureSpec
     .withGroupId("test")
     .withKeyDeserializer(new StringDeserializer())
     .withValueDeserializer(new StringDeserializer())
-
+    .finalizeEveryPollWithin(30.seconds)
 
   feature("Send and poll messages") {
     Given("Topic: KafkaClientsIT_Smoke")
@@ -90,9 +93,9 @@ class KafkaClientsIT extends FeatureSpec
   feature("Commit after every poll") {
     Given("Topic: KafkaClientsIT_Commit")
     val topic = "KafkaClientsIT_Commit"
-    val sendPeriod = 100.milliseconds
+    val sendPeriod = 300.milliseconds
     info(s"send period: $sendPeriod")
-    val pollTimeout = 500.milliseconds
+    val pollTimeout = 700.milliseconds
     info(s"poll timeout: $pollTimeout")
 
     def createPollingWithBuffer() = {
@@ -108,7 +111,7 @@ class KafkaClientsIT extends FeatureSpec
     }
 
     scenario("Repeated poll should not receive previously handled messages") {
-      Given("Kafka producer which produce messages in background every 100ms")
+      Given("Kafka producer which produce messages in background every 300ms")
       val producer = producerBuilder.build
       val i = new AtomicInteger(0)
       Timer.schedule(sendPeriod) {
@@ -119,7 +122,7 @@ class KafkaClientsIT extends FeatureSpec
       val (firstPolling, firstReceivedMessages) = createPollingWithBuffer()
 
       When("Received at least 3 records")
-      while(firstReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
+      while (firstReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
 
       Then("Complete first polling and begin a new one")
       await(firstPolling.stop())
@@ -127,7 +130,7 @@ class KafkaClientsIT extends FeatureSpec
       val (secondPolling, secondReceivedMessages) = createPollingWithBuffer()
 
       When("Received at least 3 records again then stop second poling")
-      while(secondReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
+      while (secondReceivedMessages.size < 3) Thread.sleep(pollTimeout.toMillis * 2)
       await(secondPolling.stop())
 
       Then("Messages received at second polling should not contain any messages from the first polling")
