@@ -7,12 +7,11 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger }
 import com.typesafe.scalalogging.Logger
 import org.apache.kafka.clients.consumer.{ Consumer, ConsumerRecord, OffsetAndMetadata }
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.errors.WakeupException
-import KafkaConsumer._
+import ru.dokwork.easy.kafka.KafkaConsumer._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 import scala.concurrent._
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 /**
@@ -27,8 +26,6 @@ class KafkaConsumer[K, V] private[kafka](
   consumerFactory: () => Consumer[K, V],
   commitStrategy: CommitStrategy
 ) {
-
-  import ru.dokwork.easy.kafka.KafkaConsumer.executor
 
   /**
    * Start poll kafka from specified topics in the new thread and invoke handler for each records
@@ -46,19 +43,21 @@ class KafkaConsumer[K, V] private[kafka](
   def poll(topics: Seq[String], pollingTimeout: Duration = 100 milliseconds)
     (handler: RecordHandler[K, V]): KafkaConsumer.Polling = {
     val consumer = consumerFactory.apply()
-    new PollingImpl(consumer, topics, pollingTimeout.toMillis, handler)
+    consumer.subscribe(topics.asJava)
+    new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
   }
 
   private class PollingImpl(
-    consumer: Consumer[K, V],
+    consumer: FutureConsumer[K, V],
     topics: Seq[String],
     pollingTimeout: Long,
     handler: RecordHandler[K, V]
   ) extends KafkaConsumer.Polling {
+
+    import ru.dokwork.easy.kafka.KafkaConsumer.executor
+
     private val log = Logger(s"$getClass: [${topics.mkString(", ")}]")
     private val isStarted = new AtomicBoolean(true)
-
-    consumer.subscribe(topics.asJava)
 
     // initialization of this value begins a polling
     private val polling: Future[Unit] = pollKafka().transform { f =>
@@ -86,12 +85,11 @@ class KafkaConsumer[K, V] private[kafka](
       loop(Seq())
     }
 
-    private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = Future {
-      val recs = consumer.poll(pollingTimeout)
-      log.info(s"polled ${recs.count()} records")
-      recs.iterator().asScala
-    }.recover {
-      case _: WakeupException => Iterator.empty
+    private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = {
+      consumer.poll(pollingTimeout).map { recs =>
+        log.debug(s"polled ${recs.count()} records")
+        recs.iterator().asScala
+      }
     }
 
     private def handleWithLogging(record: ConsumerRecord[K, V]): Future[ConsumerRecord[K, V]] = {
@@ -109,12 +107,14 @@ class KafkaConsumer[K, V] private[kafka](
     }
 
     private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] = commitStrategy match {
-      case CommitEveryPollStrategy if records.nonEmpty => Future {
-          val beginTime = Deadline.now
-          log.info(s"Begin commit records ${records.mkString("; ")} at $beginTime")
-          consumer.commitSync()
-          log.info(s"Records successful committed in ${Deadline.now - beginTime}")
-        }
+      case CommitEveryPollStrategy if records.nonEmpty =>
+        val beginTime = Deadline.now
+        log.debug(s"Begin commit records ${records.mkString("; ")} at $beginTime")
+        val commit = consumer.commit()
+        commit.onComplete(_ =>
+          log.debug(s"Records successful committed in ${Deadline.now - beginTime}")
+        )
+        commit
       case _ =>
         Future.unit
     }
