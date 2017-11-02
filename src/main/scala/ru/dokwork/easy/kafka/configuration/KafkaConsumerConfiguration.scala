@@ -78,7 +78,7 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     keyDeserializer: Deserializer[K],
     valueDeserializer: Deserializer[V]
   ): KafkaConsumer[K, V] = {
-    def factory() = {
+    val factory = () => {
       new kafka.KafkaConsumer[K, V](
         properties(),
         keyDeserializer,
