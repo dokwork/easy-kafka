@@ -6,7 +6,7 @@ import java.util.{ TimerTask, Timer => _ }
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.{ StringDeserializer, StringSerializer }
-import org.scalatest._
+import org.scalatest.{ FeatureSpec, Matchers }
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{ Minutes, Span }
 
@@ -180,9 +180,4 @@ class KafkaClientsIT extends FeatureSpec
     }
     (polling, receivedMessages)
   }
-
-  //  def info(str: String) = println(str)
-  //  override def Given(message: String)(implicit pos: Position): Unit = println("Given: " + message)
-  //  override def When(message: String)(implicit pos: Position): Unit = println("When: " + message)
-  //  override def Then(message: String)(implicit pos: Position): Unit = println("Then: " + message)
 }
