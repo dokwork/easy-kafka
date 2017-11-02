@@ -70,7 +70,7 @@ class KafkaConsumer[K, V] private[kafka](
     private val isStarted = new AtomicBoolean(true)
 
     // initialization of this value begins a polling
-    private lazy val polling: Future[Unit] = pollKafka().transform { f =>
+    private val polling: Future[Unit] = pollKafka().transform { f =>
       consumer.close()
       f
     }
