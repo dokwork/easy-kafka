@@ -103,17 +103,22 @@ class KafkaConsumer[K, V] private[kafka](
     }
 
     private def handleWithLogging(record: ConsumerRecord[K, V]): Future[ConsumerRecord[K, V]] = {
-      log.trace(s"begin handle $record")
+      log.trace(s"begin handle ${format(record)}")
       val result = handler.apply(record).map(_ => record)
       if (log.underlying.isTraceEnabled) {
         result.onComplete {
           case Success(_) =>
-            log.trace(s"handle $record completed successful")
+            log.trace(s"handle ${format(record)} completed successful")
           case Failure(e) =>
-            log.trace(s"handle $record failed: $e")
+            log.trace(s"handle ${format(record)} failed: $e")
         }
       }
       result
+    }
+
+    private def format(record: ConsumerRecord[K, V]): String = {
+      import record._
+      s"ConsumerRecord(topic = $topic, partition = $partition, offset = $offset, key = $key, value = $value)"
     }
 
     private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] = commitStrategy match {
