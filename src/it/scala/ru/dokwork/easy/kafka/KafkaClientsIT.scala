@@ -20,9 +20,9 @@ class KafkaClientsIT extends FeatureSpec
   with Matchers
   with TimeLimitedTests {
 
-  override def timeLimit = Span(5, Minutes)
+  override def timeLimit = Span(10, Minutes)
 
-  private def await(w: Awaitable[_]) = Await.result(w, 1.minute)
+  private def await(w: Awaitable[_]) = Await.result(w, 3.minute)
 
   private object Timer extends java.util.Timer(true) {
     def schedule(period: Duration)(f: => Unit): Unit = {
