@@ -2,7 +2,7 @@ package ru.dokwork.easy.kafka.configuration
 
 import org.apache.kafka.clients.{ consumer => kafka }
 import org.apache.kafka.common.serialization.Deserializer
-import ru.dokwork.easy.kafka.KafkaConsumer
+import ru.dokwork.easy.kafka.{ KafkaConsumer, configuration }
 import ru.dokwork.easy.kafka.KafkaConsumer._
 
 import scala.concurrent.Await
@@ -19,12 +19,55 @@ import scala.concurrent.duration.Duration
  * @tparam GID compile-time check that group id is defined.
  */
 final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, VD <: IsDefined, GID <: IsDefined] private (
-  override protected val params: Parameters = Parameters.empty,
-  override protected val keyDeserializer: Deserializer[K] = null,
-  override protected val valueDeserializer: Deserializer[V] = null
-) extends ConsumerConfiguration[K, V, BS, KD, VD, GID, KafkaConsumer[K, V]] {
+  private val params: Parameters = Parameters.empty,
+  private val keyDeserializer: Deserializer[K] = null,
+  private val valueDeserializer: Deserializer[V] = null
+) extends KafkaConfiguration[K, V, KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]] {
 
   private type CurrentConfiguration = KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]
+
+  /**
+   * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
+   * to the Kafka cluster. Must be defined.
+   */
+  def withBootstrapServers(bootstrapServers: => Seq[String]) = {
+    val p = params.get[configuration.BootstrapServers].copy(bootstrapServers)
+    configure(params + p, keyDeserializer, valueDeserializer)
+      .asInstanceOf[KafkaConsumerConfiguration[K, V, Defined, KD, VD, GID]]
+  }
+
+  /**
+   * Adds the group id to the kafka properties. Must be defined.
+   */
+  def withGroupId(groupId: String) = {
+    val p = params.get[GroupId].copy(Some(groupId))
+    configure(params + p, keyDeserializer, valueDeserializer)
+      .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, KD, VD, Defined]]
+  }
+
+  /**
+   * Specifies a deserializer for the kafka records keys. Must be defined.
+   */
+  def withKeyDeserializer(deserializer: Deserializer[K]) = {
+    configure(params, deserializer, valueDeserializer)
+      .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, Defined, VD, GID]]
+  }
+
+  /**
+   * Specifies a deserializer for the kafka records values. Must be defined.
+   */
+  def withValueDeserializer(deserializer: Deserializer[V]) = {
+    configure(params, keyDeserializer, deserializer)
+      .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, KD, Defined, GID]]
+  }
+
+  /**
+   * Specifies [[org.apache.kafka.clients.consumer.OffsetResetStrategy offset reset strategy]] for consumer.
+   */
+  def withOffsetResetStrategy(strategy: kafka.OffsetResetStrategy) = {
+    val p = params.get[configuration.OffsetResetStrategy].copy(strategy)
+    configure(params + p)
+  }
 
   /**
    * Specifies a default commit strategy. Default is
@@ -73,11 +116,29 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     configure(params + p, keyDeserializer, valueDeserializer)
   }
 
-  override protected def build(
+  /**
+   * Should create new self instance with amended parameters.
+   */
+  override protected def configure(params: Parameters): CurrentConfiguration = {
+    configure[BS, KD, VD, GID](params, keyDeserializer, valueDeserializer)
+  }
+
+  private def configure[BS1 <: IsDefined, KD1 <: IsDefined, VD1 <: IsDefined, GID1 <: IsDefined](
     params: Parameters,
     keyDeserializer: Deserializer[K],
     valueDeserializer: Deserializer[V]
+  ): KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1] = {
+    new KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1](params, keyDeserializer, valueDeserializer)
+  }
+
+  /**
+   * Creates new instance of the type [[ru.dokwork.easy.kafka.KafkaConsumer]].
+   */
+  def build(
+    implicit ev: KafkaConsumerConfiguration[K, V, BS, KD, VD, GID] is KafkaConsumerConfiguration[K, V, Defined, Defined, Defined, Defined]
   ): KafkaConsumer[K, V] = {
+    require(keyDeserializer ne null)
+    require(valueDeserializer ne null)
     val factory = () => {
       new kafka.KafkaConsumer[K, V](
         properties(),
@@ -87,15 +148,6 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     }
     new KafkaConsumer[K, V](factory, params.get[CommitStrategy].strategy, params.get[ShutdownHook].hook)
   }
-
-  override protected def configure[BS1 <: IsDefined, KD1 <: IsDefined, VD1 <: IsDefined, GID1 <: IsDefined](
-    params: Parameters,
-    keyDeserializer: Deserializer[K],
-    valueDeserializer: Deserializer[V]
-  ): KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1] = {
-    new KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1](params, keyDeserializer, valueDeserializer)
-  }
-
 }
 
 object KafkaConsumerConfiguration {
