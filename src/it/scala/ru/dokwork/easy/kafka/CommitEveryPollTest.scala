@@ -59,20 +59,4 @@ class CommitEveryPollTest extends ITest {
   override def afterAll() = {
     if (sending ne null) sending.cancel()
   }
-
-  def createPollingWithBuffer(
-    consumer: KafkaConsumer[String, String],
-    topic: String,
-    pollTimeout: Duration,
-    key: String
-  ) = {
-    val receivedMessages = mutable.Buffer[String]()
-
-    lazy val polling = consumer.poll(Seq(topic), pollTimeout) { record =>
-      Future.successful {
-        if (record.key() == key) receivedMessages.append(record.value())
-      }
-    }
-    (polling, receivedMessages)
-  }
 }

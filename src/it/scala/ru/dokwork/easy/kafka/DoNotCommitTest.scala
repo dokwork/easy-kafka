@@ -3,8 +3,6 @@ package ru.dokwork.easy.kafka
 import java.util.TimerTask
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.collection.mutable
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class DoNotCommitTest extends ITest {
@@ -57,21 +55,5 @@ class DoNotCommitTest extends ITest {
 
   override def afterAll() = {
     if (sending ne null) sending.cancel()
-  }
-
-  def createPollingWithBuffer(
-    consumer: KafkaConsumer[String, String],
-    topic: String,
-    pollTimeout: Duration,
-    key: String
-  ) = {
-    val receivedMessages = mutable.Buffer[String]()
-
-    lazy val polling = consumer.poll(Seq(topic), pollTimeout) { record =>
-      Future.successful {
-        if (record.key() == key) receivedMessages.append(record.value())
-      }
-    }
-    (polling, receivedMessages)
   }
 }
