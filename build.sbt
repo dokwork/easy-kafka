@@ -20,7 +20,6 @@ lazy val easyKafka = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it",
       "org.apache.kafka" % "kafka-clients" % "0.11.0.1" % "test, it"
     ),
-    parallelExecution in IntegrationTest := false,
     pomExtra :=
       <developers>
         <developer>
