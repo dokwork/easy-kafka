@@ -19,7 +19,7 @@ import scala.concurrent.duration.Duration
  * @tparam GID compile-time check that group id is defined.
  */
 final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, VD <: IsDefined, GID <: IsDefined] private (
-  private val params: Parameters = Parameters.empty,
+  override protected val params: Parameters = Parameters.empty,
   private val keyDeserializer: Deserializer[K] = null,
   private val valueDeserializer: Deserializer[V] = null
 ) extends KafkaConfiguration[K, V, KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]] {
