@@ -23,6 +23,8 @@ trait ITest extends FeatureSpec
   val bootstrapServer = s"${conf.getString("kafka.host")}:${conf.getInt("kafka.port")}"
   info("BOOTSTRAP: " + bootstrapServer)
 
+  def groupId: String
+
   def producerBuilder = Kafka.producer[String, String]
     .withBootstrapServers(Seq(bootstrapServer))
     .withKeySerializer(new StringSerializer())
@@ -30,7 +32,7 @@ trait ITest extends FeatureSpec
 
   def consumerBuilder = Kafka.consumer[String, String]
     .withBootstrapServers(Seq(bootstrapServer))
-    .withGroupId("test")
+    .withGroupId(groupId + "@" + hashCode())
     .withKeyDeserializer(new StringDeserializer())
     .withValueDeserializer(new StringDeserializer())
     .finalizeEveryPollWithin(30.seconds)

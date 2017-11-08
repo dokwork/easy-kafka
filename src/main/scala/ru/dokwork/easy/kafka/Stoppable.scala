@@ -1,6 +1,6 @@
 package ru.dokwork.easy.kafka
 
-import scala.concurrent.Future
+import scala.concurrent.Awaitable
 
 /**
  * Stoppable is a mixin trait to describe process which can be stopped.
@@ -8,8 +8,7 @@ import scala.concurrent.Future
 trait Stoppable {
 
   /**
-   * Stop the process. The returned Future is completed when the process
-   * has been stopped.
+   * Stop the process.
    */
-  def stop(): Future[Unit]
+  def stop(): Awaitable[Unit]
 }

@@ -13,6 +13,11 @@ class CommitStrategiesTest extends ITest {
 
   var sending: TimerTask = _
 
+  def groupId = "strategies-tests"
+
+  override def consumerBuilder = super.consumerBuilder
+    .withOffsetResetStrategy(OffsetResetStrategy.EARLIEST)
+
   feature("Commit after every poll") {
     val key = hashCode.toString
     info(s"Kafka key for this run is $key")
@@ -101,8 +106,6 @@ class CommitStrategiesTest extends ITest {
       secondReceivedMessages should contain allElementsOf firstReceivedMessages
     }
   }
-
-  override def consumerBuilder = super.consumerBuilder.withOffsetResetStrategy(OffsetResetStrategy.EARLIEST)
 
   override def afterAll() = {
     if (sending ne null) sending.cancel()
