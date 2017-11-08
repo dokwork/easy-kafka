@@ -30,6 +30,7 @@ services:
 script:
   # run kafka for integration tests
   - docker run -p 9092:9092 -p 2181:2181 --env ADVERTISED_HOST=$(hostname) --env ADVERTISED_PORT=9092 -d spotify/kafka
+  - sleep 10
   - sbt clean coverage test it:test
 
 after_success:

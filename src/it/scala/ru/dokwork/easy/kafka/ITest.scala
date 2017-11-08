@@ -17,7 +17,7 @@ trait ITest extends FeatureSpec
   with Matchers
   with TimeLimitedTests {
 
-  override def timeLimit = Span(10, Minutes)
+  override def timeLimit = Span(5, Minutes)
 
   val conf = ConfigFactory.defaultApplication()
   val bootstrapServer = s"${conf.getString("kafka.host")}:${conf.getInt("kafka.port")}"
