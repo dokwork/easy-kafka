@@ -13,11 +13,12 @@ lazy val easyKafka = (project in file("."))
       "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
       "com.typesafe" % "config" % "1.3.1",
       // kafka:
-      "org.apache.kafka" % "kafka-clients" % "0.9.0.1",
+      "org.apache.kafka" % "kafka-clients" % "0.11.0.1" % "provided",
       // tests:
       "org.scalatest" %% "scalatest" % "3.0.0" % "test, it",
       "org.mockito" % "mockito-all" % "1.9.5" % "test, it",
-      "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it"
+      "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it",
+      "org.apache.kafka" % "kafka-clients" % "0.11.0.1" % "test, it"
     ),
     pomExtra :=
       <developers>

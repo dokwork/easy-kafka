@@ -97,23 +97,28 @@ class KafkaConsumer[K, V] private[kafka](
 
     private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = {
       consumer.poll(pollingTimeout).map { recs =>
-        log.debug(s"polled ${recs.count()} records")
+        if (recs.isEmpty) log.trace("received nothing") else log.debug(s"received ${recs.count()} records")
         recs.iterator().asScala
       }
     }
 
     private def handleWithLogging(record: ConsumerRecord[K, V]): Future[ConsumerRecord[K, V]] = {
-      log.trace(s"begin handle $record")
+      log.trace(s"begin handling ${format(record)}")
       val result = handler.apply(record).map(_ => record)
       if (log.underlying.isTraceEnabled) {
         result.onComplete {
           case Success(_) =>
-            log.trace(s"handle $record completed successful")
+            log.trace(s"handling ${format(record)} completed successful")
           case Failure(e) =>
-            log.trace(s"handle $record failed: $e")
+            log.trace(s"handling ${format(record)} failed: $e")
         }
       }
       result
+    }
+
+    private def format(record: ConsumerRecord[K, V]): String = {
+      import record._
+      s"ConsumerRecord(topic = $topic, partition = $partition, offset = $offset, key = $key, value = $value)"
     }
 
     private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] = commitStrategy match {
@@ -150,9 +155,10 @@ class KafkaConsumer[K, V] private[kafka](
      * @return future that will be completed after last polling completed.
      */
     override def stop(): Future[Unit] = {
-      log.info(s"Stop poll topics [${topics.mkString(", ")}]")
-      isStarted.set(false)
-      consumer.wakeup()
+      if (isStarted.compareAndSet(true, false)) {
+        log.info(s"Stop polling topics [${topics.mkString(", ")}]")
+        consumer.wakeup()
+      }
       polling
     }
   }
@@ -164,7 +170,7 @@ object KafkaConsumer {
   private[kafka] implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(
     Executors.newCachedThreadPool((r: Runnable) => new Thread(r) {
       val threadNumber = new AtomicInteger(0)
-      setName(s"${this.getClass.getSimpleName}-thread-" + threadNumber.incrementAndGet())
+      setName("kafka-consumer-thread-" + threadNumber.incrementAndGet())
       setDaemon(true)
     })
   )
