@@ -3,7 +3,6 @@ package ru.dokwork.easy.kafka
 import java.util.TimerTask
 
 import com.typesafe.config.ConfigFactory
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
 import org.apache.kafka.common.serialization.{ StringDeserializer, StringSerializer }
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{ Minutes, Span }

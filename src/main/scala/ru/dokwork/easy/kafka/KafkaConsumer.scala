@@ -97,20 +97,20 @@ class KafkaConsumer[K, V] private[kafka](
 
     private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = {
       consumer.poll(pollingTimeout).map { recs =>
-        log.debug(s"polled ${recs.count()} records")
+        if (recs.isEmpty) log.trace("received nothing") else log.debug(s"received ${recs.count()} records")
         recs.iterator().asScala
       }
     }
 
     private def handleWithLogging(record: ConsumerRecord[K, V]): Future[ConsumerRecord[K, V]] = {
-      log.trace(s"begin handle ${format(record)}")
+      log.trace(s"begin handling ${format(record)}")
       val result = handler.apply(record).map(_ => record)
       if (log.underlying.isTraceEnabled) {
         result.onComplete {
           case Success(_) =>
-            log.trace(s"handle ${format(record)} completed successful")
+            log.trace(s"handling ${format(record)} completed successful")
           case Failure(e) =>
-            log.trace(s"handle ${format(record)} failed: $e")
+            log.trace(s"handling ${format(record)} failed: $e")
         }
       }
       result
