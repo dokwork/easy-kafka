@@ -6,7 +6,7 @@ import ru.dokwork.easy.kafka.{ KafkaConsumer, configuration }
 import ru.dokwork.easy.kafka.KafkaConsumer._
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
  * Configuration for the [[ru.dokwork.easy.kafka.KafkaConsumer]].
@@ -80,9 +80,11 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     /**
      * If this strategy selected then will be used auto-commit from the Kafka.
      *
+     * @param interval how often Kafka will commit offsets. Default is 1 second.
      * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
      */
-    def AutoCommit: CurrentConfiguration = setCommitStrategy(AutoCommitStrategy)
+    def AutoCommit(interval: FiniteDuration = 1.second): CurrentConfiguration =
+      setCommitStrategy(AutoCommitStrategy(interval))
 
     /**
      * If this strategy selected then all records which were polled and successfully handled
@@ -93,7 +95,7 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
     /**
      * If this strategy selected then nothing will be committed.
      */
-    def DoNotCommit: CurrentConfiguration = setCommitStrategy(DoNotCommitStrategy)
+    def DoNotCommit: CurrentConfiguration = setCommitStrategy(NotCommitStrategy)
 
     private def setCommitStrategy(strategy: KafkaConsumer.CommitStrategy): CurrentConfiguration = {
       val p = params.get[CommitStrategy].copy(strategy)

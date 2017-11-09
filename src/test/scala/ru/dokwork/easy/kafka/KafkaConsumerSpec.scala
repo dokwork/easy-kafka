@@ -37,7 +37,7 @@ class KafkaConsumerSpec extends FreeSpec
   trait Fixture extends ConsumerFactory {
     val topics = Seq("test-topic")
 
-    def commitStrategy = KafkaConsumer.AutoCommitStrategy
+    def commitStrategy = KafkaConsumer.AutoCommitStrategy(1.second)
 
     lazy val kafkaConsumer = new KafkaConsumer[K, V](consumerFactory, commitStrategy)
   }

@@ -23,7 +23,7 @@ package object configuration {
    * on build some client to the kafka.
    */
   trait AsProperty {
-    def asProperty: Option[(String, String)]
+    def asProperties: Seq[(String, String)]
   }
 
   implicit def tpEquals[A]: A is A = singleton_is.asInstanceOf[A is A]
@@ -32,14 +32,14 @@ package object configuration {
   @implicitNotFound("KafkaClient is not completely configured: ${A}")
   sealed abstract class is[A, B]
 
+  case class Properties(properties: Map[String, String])
+
   implicit object Properties extends Parameter[Properties] {
     override lazy val default: Properties = new Properties(Map())
   }
 
-  case class Properties(properties: Map[String, String])
-
   case class BootstrapServers(servers: Seq[String]) extends AsProperty {
-    override def asProperty = Some("bootstrap.servers", servers.mkString(","))
+    override def asProperties: Seq[(String, String)] = Seq("bootstrap.servers" -> servers.mkString(","))
   }
 
   implicit object BootstrapServers extends Parameter[BootstrapServers] {
@@ -47,7 +47,7 @@ package object configuration {
   }
 
   case class ClientId(clientId: Option[String]) extends AsProperty {
-    override def asProperty = clientId.map(id => ("client.id", id))
+    override def asProperties: Seq[(String, String)] = clientId.map(id => ("client.id", id)).toList
   }
 
   implicit object ClientId extends Parameter[ClientId] {
@@ -55,7 +55,7 @@ package object configuration {
   }
 
   case class GroupId(groupId: Option[String]) extends AsProperty {
-    override def asProperty: Option[(String, String)] = groupId.map(id => ("group.id", id))
+    override def asProperties: Seq[(String, String)] = groupId.map(id => ("group.id", id)).toList
   }
 
   implicit object GroupId extends Parameter[GroupId] {
@@ -63,17 +63,25 @@ package object configuration {
   }
 
   case class CommitStrategy(strategy: KafkaConsumer.CommitStrategy) extends AsProperty {
-    override def asProperty: Option[(String, String)] =
-      Some("enable.auto.commit", (strategy == AutoCommitStrategy).toString)
+    override def asProperties: Seq[(String, String)] = strategy match {
+      case AutoCommitStrategy(interval) =>
+        Seq(
+          "enable.auto.commit" -> "true",
+          "auto.commit.interval.ms" -> interval.toMillis.toString
+        )
+      case _ =>
+        Seq("enable.auto.commit" -> "false")
+    }
   }
 
   implicit object CommitStrategy extends Parameter[CommitStrategy] {
-    override lazy val default: CommitStrategy = CommitStrategy(AutoCommitStrategy)
+    import scala.concurrent.duration._
+    override lazy val default: CommitStrategy = CommitStrategy(AutoCommitStrategy(1.second))
   }
 
   case class OffsetResetStrategy(offsetResetStrategy: consumer.OffsetResetStrategy) extends AsProperty {
-    override def asProperty: Option[(String, String)] =
-      Some("auto.offset.reset", offsetResetStrategy.toString.toLowerCase())
+    override def asProperties: Seq[(String, String)] =
+      Seq("auto.offset.reset" -> offsetResetStrategy.toString.toLowerCase())
   }
 
   implicit object OffsetResetStrategy extends Parameter[OffsetResetStrategy] {
@@ -85,4 +93,5 @@ package object configuration {
   implicit object ShutdownHook extends Parameter[ShutdownHook] {
     override lazy val default: ShutdownHook = ShutdownHook(None)
   }
+
 }

@@ -1,4 +1,4 @@
-# Easy Kafka
+# Easy Kafka   ![Build status](https://travis-ci.org/dokwork/easy-kafka.svg?branch=master)  [![Coverage Status](https://coveralls.io/repos/github/dokwork/easy-kafka/badge.svg?branch=master)](https://coveralls.io/github/dokwork/easy-kafka?branch=master)
 
 Данный проект содержит набор классов, упрощающих взаимодействие с Apache Kafka:
 * `ru.dokwork.easy.kafka.Kafka` - билдер клиентов к kafka.
@@ -103,7 +103,7 @@ Await.result(polling, Duration.Inf) // выбросит исключение Exa
 #### KafkaConsumer commit strategies
 
 Для `KafkaConsumer` определены три стратегии комита:
-- `DoNotCommitStrategy` - kafka property `auto.offset.reset` устанавливается в false. Ничего не 
+- `NotCommitStrategy` - kafka property `auto.offset.reset` устанавливается в false. Ничего не 
   комитится в Kafka;
 - `AutoCommitStrategy` - kafka property `auto.offset.reset` устанавливается в true со всеми 
   вытекающими

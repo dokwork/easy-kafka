@@ -29,4 +29,8 @@ lazy val easyKafka = (project in file("."))
         </developer>
       </developers>
   )
+  .settings(
+    coverageMinimum := 90,
+    coverageFailOnMinimum := true
+  )
 
