@@ -195,7 +195,7 @@ object KafkaConsumer {
    *
    * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
    */
-  case object AutoCommitStrategy extends CommitStrategy
+  case class AutoCommitStrategy(interval: FiniteDuration) extends CommitStrategy
 
   /**
    * If this strategy selected then all records which were polled and successfully handled
@@ -206,7 +206,7 @@ object KafkaConsumer {
   /**
    * If this strategy selected then nothing will be committed.
    */
-  case object DoNotCommitStrategy extends CommitStrategy
+  case object NotCommitStrategy extends CommitStrategy
 
 }
 

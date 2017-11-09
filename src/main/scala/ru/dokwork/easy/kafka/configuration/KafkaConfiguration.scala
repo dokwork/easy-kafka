@@ -36,22 +36,15 @@ trait KafkaConfiguration[K, V, C <: KafkaConfiguration[K, V, C]] {
   protected def properties(): util.Properties = {
     import scala.collection.JavaConverters._
 
-    def onlyDefinedProperties(param: (Parameter[_], Any)) = param match {
-      case (_, p: AsProperty) => p.asProperty.isDefined
-      case _ => false
+    def convertToProperties(param: (Parameter[_], Any)) = param match {
+      case (_, p: AsProperty) => p.asProperties
+      case _ => Seq.empty
     }
 
-    def convertToProperty(param: (Parameter[_], Any)) = param match {
-      case (_, p: AsProperty) => p.asProperty.get
-    }
-
-    val props = params.get[Properties].properties ++ params.view
-      .filter(onlyDefinedProperties)
-      .map(convertToProperty)
+    val props = params.get[Properties].properties ++ params.view.flatMap(convertToProperties)
 
     val kafkaProperties = new util.Properties()
     kafkaProperties.putAll(props.asJava)
     kafkaProperties
   }
-
 }

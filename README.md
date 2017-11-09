@@ -103,7 +103,7 @@ Await.result(polling, Duration.Inf) // выбросит исключение Exa
 #### KafkaConsumer commit strategies
 
 Для `KafkaConsumer` определены три стратегии комита:
-- `DoNotCommitStrategy` - kafka property `auto.offset.reset` устанавливается в false. Ничего не 
+- `NotCommitStrategy` - kafka property `auto.offset.reset` устанавливается в false. Ничего не 
   комитится в Kafka;
 - `AutoCommitStrategy` - kafka property `auto.offset.reset` устанавливается в true со всеми 
   вытекающими
