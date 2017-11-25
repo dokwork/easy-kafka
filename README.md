@@ -1,4 +1,5 @@
-# Easy Kafka   ![Build status](https://travis-ci.org/dokwork/easy-kafka.svg?branch=master)  [![Coverage Status](https://coveralls.io/repos/github/dokwork/easy-kafka/badge.svg?branch=master)](https://coveralls.io/github/dokwork/easy-kafka?branch=master)
+# Easy Kafka   
+![Build status](https://travis-ci.org/dokwork/easy-kafka.svg?branch=master)  [![Coverage Status](https://coveralls.io/repos/github/dokwork/easy-kafka/badge.svg?branch=master)](https://coveralls.io/github/dokwork/easy-kafka?branch=master)  [ ![Download](https://api.bintray.com/packages/dokwork/maven/easy-kafka/images/download.svg) ](https://bintray.com/dokwork/maven/easy-kafka/_latestVersion)
 
 Данный проект содержит набор классов, упрощающих взаимодействие с Apache Kafka:
 * `ru.dokwork.easy.kafka.Kafka` - билдер клиентов к kafka.
