@@ -8,11 +8,11 @@ import ReleaseKeys._
 
 object Release {
 
-   lazy val default = Seq[ReleaseStep](
+  lazy val default = Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-     runAllTest,
+    runAllTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
@@ -22,6 +22,7 @@ object Release {
     pushChanges
   )
 
+  // TODO add integration tests
   lazy val runAllTest: ReleaseStep = ReleaseStep(
     action = { st: State =>
       if (!st.get(skipTests).getOrElse(false)) {
