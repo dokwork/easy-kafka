@@ -45,7 +45,7 @@ class KafkaConsumerSpec extends FreeSpec
   trait EmptyMockHandler {
     self: Fixture =>
     val mockHandler = mock[KafkaConsumer.RecordHandler[K, V]]
-    doReturn(Future.unit).when(mockHandler).apply(any[ConsumerRecord[K, V]])
+    doReturn(F.unit).when(mockHandler).apply(any[ConsumerRecord[K, V]])
   }
 
   trait Random5RecordsInKafka {

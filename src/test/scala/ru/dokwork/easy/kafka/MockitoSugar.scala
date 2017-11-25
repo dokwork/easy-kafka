@@ -35,44 +35,44 @@ trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
   implicit def Answer2[A, B, T](f: (A, B) => T) = new Answer[T] {
     override def answer(i: InvocationOnMock) = f.apply(
       i.getArguments()(0).asInstanceOf[A],
-      i.getArguments()(1).asInstanceOf[B],
+      i.getArguments()(1).asInstanceOf[B]
     )
   }
 
   /**
-   * Use `doLazyReturn()` when you want to stub a method that should return lazy
-   * computed result.
-   *
-   * Example:
-   *
-   * {{{
-   *   def f: T = { ... }
-   *   doLazyReturn(f).when(mock).someMethod();
-   * }}}
-   *
-   * @param f function which will invoked to compute result of stub's method invocation
-   *
-   * @return stubber - to select a method for stubbing
-   */
+    * Use `doLazyReturn()` when you want to stub a method that should return lazy
+    * computed result.
+    *
+    * Example:
+    *
+    * {{{
+    *   def f: T = { ... }
+    *   doLazyReturn(f).when(mock).someMethod();
+    * }}}
+    *
+    * @param f function which will invoked to compute result of stub's method invocation
+    *
+    * @return stubber - to select a method for stubbing
+    */
   def doLazyReturn[T](f: => T) = doAnswer(
     (invocation: InvocationOnMock) => f
   )
 
   /**
-   * Add matcher for argument with lazy comparision.
-   * Use it to mix [[MockitoSugar#any(scala.reflect.Manifest)]] with
-   * real expected values of arguments.
-   *
-   * Example:
-   *
-   * {{{
-   *   lazy val expectedArg = ...
-   *   doReturn(...).when(stub).someMethodWithArgs(arg(expectedArg), any())
-   * }}}
-   * @param f function which will invoked to get value for comparision with method invocation argument.
-   * @tparam T
-   * @return
-   */
+    * Add matcher for argument with lazy comparision.
+    * Use it to mix [[MockitoSugar#any(scala.reflect.Manifest)]] with
+    * real expected values of arguments.
+    *
+    * Example:
+    *
+    * {{{
+    *   lazy val expectedArg = ...
+    *   doReturn(...).when(stub).someMethodWithArgs(arg(expectedArg), any())
+    * }}}
+    * @param f function which will invoked to get value for comparision with method invocation argument.
+    * @tparam T
+    * @return
+    */
   def arg[T](f: => T) = argThat(
     new BaseMatcher[T] {
       override def matches(item: scala.Any) = f == item

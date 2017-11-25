@@ -7,13 +7,13 @@ import scala.concurrent.duration.Deadline
 import scala.concurrent.{ Future, Promise }
 
 /**
- * Proxy class to the [[org.apache.kafka.clients.producer.Producer]] with async interface.
- *
- * @param producer java producer to Kafka.
- * @tparam K type of key.
- * @tparam V typ  of message.
- */
-class KafkaProducer[K, V] private[kafka](producer: Producer[K, V]) {
+  * Proxy class to the [[org.apache.kafka.clients.producer.Producer]] with async interface.
+  *
+  * @param producer java producer to Kafka.
+  * @tparam K type of key.
+  * @tparam V typ  of message.
+  */
+class KafkaProducer[K, V] private[kafka] (producer: Producer[K, V]) {
 
   private val log = Logger(getClass)
 
@@ -25,17 +25,20 @@ class KafkaProducer[K, V] private[kafka](producer: Producer[K, V]) {
   private def send(record: ProducerRecord[K, V]): Future[RecordMetadata] = {
     val promise = Promise[RecordMetadata]()
     val beginTime = Deadline.now
-    producer.send(record, new Callback {
-      override def onCompletion(m: RecordMetadata, e: Exception): Unit = {
-        if (e ne null) {
-          log.error(s"Exception on send $record in ${Deadline.now - beginTime}", e)
-          promise.failure(e)
-        } else {
-          log.trace(s"Record $record successfully sent in ${Deadline.now - beginTime}")
-          promise.success(m)
+    producer.send(
+      record,
+      new Callback {
+        override def onCompletion(m: RecordMetadata, e: Exception): Unit = {
+          if (e ne null) {
+            log.error(s"Exception on send $record in ${Deadline.now - beginTime}", e)
+            promise.failure(e)
+          } else {
+            log.trace(s"Record $record successfully sent in ${Deadline.now - beginTime}")
+            promise.success(m)
+          }
         }
       }
-    })
+    )
     promise.future
   }
 
