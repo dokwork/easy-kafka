@@ -69,7 +69,8 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
     private val isStarted = new AtomicBoolean(true)
 
     // initialization of this value begins a polling
-    private val polling: Future[Unit] = pollKafka().transform(_ => consumer.close(), e => e)
+    private val polling: Future[Unit] = pollKafka()
+      .transform(_ => consumer.close(), e => { consumer.close(); e })
 
     private def pollKafka(): Future[Unit] = {
       if (isStarted.get) {

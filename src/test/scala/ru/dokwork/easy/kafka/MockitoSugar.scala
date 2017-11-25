@@ -2,11 +2,11 @@ package ru.dokwork.easy.kafka
 
 import org.hamcrest.{ BaseMatcher, Description }
 import org.mockito.Matchers.argThat
-import org.mockito.Mockito.{ doAnswer, mock => mockitoMock }
+import org.mockito.Mockito.doAnswer
 import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
+import org.mockito.stubbing.{ Answer, OngoingStubbing }
 import org.mockito.verification.VerificationWithTimeout
-import org.mockito.{ ArgumentCaptor, MockSettings, Mockito }
+import org.mockito.{ ArgumentCaptor, Mockito }
 
 import scala.concurrent.duration.Duration
 import scala.reflect.Manifest
@@ -54,9 +54,7 @@ trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
     *
     * @return stubber - to select a method for stubbing
     */
-  def doLazyReturn[T](f: => T) = doAnswer(
-    (invocation: InvocationOnMock) => f
-  )
+  def doLazyReturn[T](f: => T) = doAnswer(() => f)
 
   /**
     * Add matcher for argument with lazy comparision.
@@ -80,4 +78,12 @@ trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
       override def describeTo(description: Description) = ""
     }
   )
+}
+
+object MockitoSugar {
+  implicit class RichOngoingStubbing[T](val s: OngoingStubbing[T]) extends AnyVal {
+    def thenLazyReturn(f: => T): OngoingStubbing[T] = s.thenAnswer(new Answer[T] {
+      override def answer(invocation: InvocationOnMock) = f
+    })
+  }
 }

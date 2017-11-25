@@ -8,6 +8,7 @@ import org.scalatest.FreeSpec
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Awaitable, Promise }
+import ru.dokwork.easy.kafka.MockitoSugar._
 
 class FutureConsumerSpec extends FreeSpec with MockitoSugar {
 
@@ -25,7 +26,7 @@ class FutureConsumerSpec extends FreeSpec with MockitoSugar {
 
     def  atSameTimeWithCommit(f: => Unit) = {
       val promise = Promise[Unit]()
-      when(consumer.commitSync()).thenAnswer(() => Await.result(promise.future, 30.seconds))
+      when(consumer.commitSync()).thenLazyReturn(Await.result(promise.future, 30.seconds))
       try {
         f
       } finally {
@@ -35,7 +36,7 @@ class FutureConsumerSpec extends FreeSpec with MockitoSugar {
 
     def atSameTimeWithPoll(f: => Unit) = {
       val promise = Promise[ConsumerRecords[K, V]]()
-      when(consumer.poll(any[Long])).thenAnswer((_: Long) => Await.result(promise.future, 30.seconds))
+      when(consumer.poll(any[Long])).thenLazyReturn(Await.result(promise.future, 30.seconds))
       try {
         f
       } finally {
