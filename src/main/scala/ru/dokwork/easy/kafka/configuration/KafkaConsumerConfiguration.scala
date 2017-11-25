@@ -9,27 +9,32 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * Configuration for the [[ru.dokwork.easy.kafka.KafkaConsumer]].
- *
- * @tparam K type of the key of the records in kafka.
- * @tparam V type of the value of the records in kafka.
- * @tparam BS compile-time check that bootstrap servers are defined.
- * @tparam KD compile-time check that key deserializer is defined.
- * @tparam VD compile-time check that value deserializer is defined.
- * @tparam GID compile-time check that group id is defined.
- */
-final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, VD <: IsDefined, GID <: IsDefined] private (
-  override protected val params: Parameters = Parameters.empty,
-  private val keyDeserializer: Deserializer[K] = null,
-  private val valueDeserializer: Deserializer[V] = null
+  * Configuration for the [[ru.dokwork.easy.kafka.KafkaConsumer]].
+  *
+  * @tparam K type of the key of the records in kafka.
+  * @tparam V type of the value of the records in kafka.
+  * @tparam BS compile-time check that bootstrap servers are defined.
+  * @tparam KD compile-time check that key deserializer is defined.
+  * @tparam VD compile-time check that value deserializer is defined.
+  * @tparam GID compile-time check that group id is defined.
+  */
+final class KafkaConsumerConfiguration[K,
+                                       V,
+                                       BS <: IsDefined,
+                                       KD <: IsDefined,
+                                       VD <: IsDefined,
+                                       GID <: IsDefined] private (
+    override protected val params: Parameters = Parameters.empty,
+    private val keyDeserializer: Deserializer[K] = null,
+    private val valueDeserializer: Deserializer[V] = null
 ) extends KafkaConfiguration[K, V, KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]] {
 
   private type CurrentConfiguration = KafkaConsumerConfiguration[K, V, BS, KD, VD, GID]
 
   /**
-   * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
-   * to the Kafka cluster. Must be defined.
-   */
+    * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
+    * to the Kafka cluster. Must be defined.
+    */
   def withBootstrapServers(bootstrapServers: => Seq[String]) = {
     val p = params.get[configuration.BootstrapServers].copy(bootstrapServers)
     configure(params + p, keyDeserializer, valueDeserializer)
@@ -37,8 +42,8 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
   }
 
   /**
-   * Adds the group id to the kafka properties. Must be defined.
-   */
+    * Adds the group id to the kafka properties. Must be defined.
+    */
   def withGroupId(groupId: String) = {
     val p = params.get[GroupId].copy(Some(groupId))
     configure(params + p, keyDeserializer, valueDeserializer)
@@ -46,55 +51,55 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
   }
 
   /**
-   * Specifies a deserializer for the kafka records keys. Must be defined.
-   */
+    * Specifies a deserializer for the kafka records keys. Must be defined.
+    */
   def withKeyDeserializer(deserializer: Deserializer[K]) = {
     configure(params, deserializer, valueDeserializer)
       .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, Defined, VD, GID]]
   }
 
   /**
-   * Specifies a deserializer for the kafka records values. Must be defined.
-   */
+    * Specifies a deserializer for the kafka records values. Must be defined.
+    */
   def withValueDeserializer(deserializer: Deserializer[V]) = {
     configure(params, keyDeserializer, deserializer)
       .asInstanceOf[KafkaConsumerConfiguration[K, V, BS, KD, Defined, GID]]
   }
 
   /**
-   * Specifies [[org.apache.kafka.clients.consumer.OffsetResetStrategy offset reset strategy]] for consumer.
-   */
+    * Specifies [[org.apache.kafka.clients.consumer.OffsetResetStrategy offset reset strategy]] for consumer.
+    */
   def withOffsetResetStrategy(strategy: kafka.OffsetResetStrategy) = {
     val p = params.get[configuration.OffsetResetStrategy].copy(strategy)
     configure(params + p)
   }
 
   /**
-   * Specifies a default commit strategy. Default is
-   * [[KafkaConsumer.AutoCommitStrategy]] for consumer.
-   *
-   * @see [[KafkaConsumer.CommitStrategy]]
-   */
+    * Specifies a default commit strategy. Default is
+    * [[KafkaConsumer.AutoCommitStrategy]] for consumer.
+    *
+    * @see [[KafkaConsumer.CommitStrategy]]
+    */
   object withCommitStrategy {
 
     /**
-     * If this strategy selected then will be used auto-commit from the Kafka.
-     *
-     * @param interval how often Kafka will commit offsets. Default is 1 second.
-     * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
-     */
+      * If this strategy selected then will be used auto-commit from the Kafka.
+      *
+      * @param interval how often Kafka will commit offsets. Default is 1 second.
+      * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
+      */
     def AutoCommit(interval: FiniteDuration = 1.second): CurrentConfiguration =
       setCommitStrategy(AutoCommitStrategy(interval))
 
     /**
-     * If this strategy selected then all records which were polled and successfully handled
-     * will be committed before next poll.
-     */
+      * If this strategy selected then all records which were polled and successfully handled
+      * will be committed before next poll.
+      */
     def CommitEveryPoll: CurrentConfiguration = setCommitStrategy(CommitEveryPollStrategy)
 
     /**
-     * If this strategy selected then nothing will be committed.
-     */
+      * If this strategy selected then nothing will be committed.
+      */
     def DoNotCommit: CurrentConfiguration = setCommitStrategy(NotCommitStrategy)
 
     private def setCommitStrategy(strategy: KafkaConsumer.CommitStrategy): CurrentConfiguration = {
@@ -104,14 +109,15 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
   }
 
   /**
-   * Adds [[java.lang.Runtime#addShutdownHook(java.lang.Thread) shutdown hook]] for
-   * [[ru.dokwork.easy.kafka.KafkaConsumer.Polling#stop() stop]] every
-   * polling when JVM is shutting down.
-   *
-   * @param closeTimeout max time to wait polling.
-   */
+    * Adds [[java.lang.Runtime#addShutdownHook(java.lang.Thread) shutdown hook]] for
+    * [[ru.dokwork.easy.kafka.KafkaConsumer.Polling#stop() stop]] every
+    * polling when JVM is shutting down.
+    *
+    * @param closeTimeout max time to wait polling.
+    */
   def finalizeEveryPollWithin(closeTimeout: Duration): CurrentConfiguration = {
-    val hook = (p: Polling) => new Runnable {
+    val hook = (p: Polling) =>
+      new Runnable {
         override def run(): Unit = Await.result(p.stop(), closeTimeout)
     }
     val p = params.get[ShutdownHook].copy(hook = Some(hook))
@@ -119,25 +125,34 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
   }
 
   /**
-   * Should create new self instance with amended parameters.
-   */
+    * Should create new self instance with amended parameters.
+    */
   override protected def configure(params: Parameters): CurrentConfiguration = {
     configure[BS, KD, VD, GID](params, keyDeserializer, valueDeserializer)
   }
 
   private def configure[BS1 <: IsDefined, KD1 <: IsDefined, VD1 <: IsDefined, GID1 <: IsDefined](
-    params: Parameters,
-    keyDeserializer: Deserializer[K],
-    valueDeserializer: Deserializer[V]
+      params: Parameters,
+      keyDeserializer: Deserializer[K],
+      valueDeserializer: Deserializer[V]
   ): KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1] = {
-    new KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1](params, keyDeserializer, valueDeserializer)
+    new KafkaConsumerConfiguration[K, V, BS1, KD1, VD1, GID1](params,
+                                                              keyDeserializer,
+                                                              valueDeserializer)
   }
 
   /**
-   * Creates new instance of the type [[ru.dokwork.easy.kafka.KafkaConsumer]].
-   */
+    * Creates new instance of the type [[ru.dokwork.easy.kafka.KafkaConsumer]].
+    */
   def build(
-    implicit ev: KafkaConsumerConfiguration[K, V, BS, KD, VD, GID] is KafkaConsumerConfiguration[K, V, Defined, Defined, Defined, Defined]
+      implicit ev: KafkaConsumerConfiguration[K, V, BS, KD, VD, GID] is KafkaConsumerConfiguration[
+        K,
+        V,
+        Defined,
+        Defined,
+        Defined,
+        Defined
+      ]
   ): KafkaConsumer[K, V] = {
     require(keyDeserializer ne null)
     require(valueDeserializer ne null)
@@ -148,10 +163,13 @@ final class KafkaConsumerConfiguration[K, V, BS <: IsDefined, KD <: IsDefined, V
         valueDeserializer
       )
     }
-    new KafkaConsumer[K, V](factory, params.get[CommitStrategy].strategy, params.get[ShutdownHook].hook)
+    new KafkaConsumer[K, V](factory,
+                            params.get[CommitStrategy].strategy,
+                            params.get[ShutdownHook].hook)
   }
 }
 
 object KafkaConsumerConfiguration {
-  def apply[K, V]() = new KafkaConsumerConfiguration[K, V, Undefined, Undefined, Undefined, Undefined]()
+  def apply[K, V]() =
+    new KafkaConsumerConfiguration[K, V, Undefined, Undefined, Undefined, Undefined]()
 }

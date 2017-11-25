@@ -21,4 +21,3 @@ object Parameters {
 
   val empty: Parameters = Params(Map())
 }
-

@@ -6,8 +6,8 @@ import ru.dokwork.easy.kafka.KafkaConsumer.{ AutoCommitStrategy, Polling }
 import scala.annotation.implicitNotFound
 
 /**
- * Here defined all [[configuration.Parameters parameters]] for configure kafka client.
- */
+  * Here defined all [[configuration.Parameters parameters]] for configure kafka client.
+  */
 package object configuration {
 
   private[this] final val singleton_is = new is[Any, Any] {}
@@ -19,9 +19,9 @@ package object configuration {
   private[kafka] trait Undefined extends IsDefined
 
   /**
-   * Every configuration parameters which extends this trait will be added to the properties
-   * on build some client to the kafka.
-   */
+    * Every configuration parameters which extends this trait will be added to the properties
+    * on build some client to the kafka.
+    */
   trait AsProperty {
     def asProperties: Seq[(String, String)]
   }
@@ -39,7 +39,8 @@ package object configuration {
   }
 
   case class BootstrapServers(servers: Seq[String]) extends AsProperty {
-    override def asProperties: Seq[(String, String)] = Seq("bootstrap.servers" -> servers.mkString(","))
+    override def asProperties: Seq[(String, String)] =
+      Seq("bootstrap.servers" -> servers.mkString(","))
   }
 
   implicit object BootstrapServers extends Parameter[BootstrapServers] {
@@ -79,13 +80,16 @@ package object configuration {
     override lazy val default: CommitStrategy = CommitStrategy(AutoCommitStrategy(1.second))
   }
 
-  case class OffsetResetStrategy(offsetResetStrategy: consumer.OffsetResetStrategy) extends AsProperty {
+  case class OffsetResetStrategy(offsetResetStrategy: consumer.OffsetResetStrategy)
+      extends AsProperty {
     override def asProperties: Seq[(String, String)] =
       Seq("auto.offset.reset" -> offsetResetStrategy.toString.toLowerCase())
   }
 
   implicit object OffsetResetStrategy extends Parameter[OffsetResetStrategy] {
-    override lazy val default: OffsetResetStrategy = OffsetResetStrategy(consumer.OffsetResetStrategy.LATEST)
+    override lazy val default: OffsetResetStrategy = OffsetResetStrategy(
+      consumer.OffsetResetStrategy.LATEST
+    )
   }
 
   case class ShutdownHook(hook: Option[(Polling) => Runnable])

@@ -1,7 +1,7 @@
 package ru.dokwork.easy.kafka
 
 import java.util
-import java.util.concurrent.Executors
+import java.util.concurrent.{ Executors, ThreadFactory }
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger }
 
 import com.typesafe.scalalogging.Logger
@@ -15,40 +15,40 @@ import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 /**
- * This implementation allows you to receive messages from kafka and handle every message in one thread.
- *
- * @param consumerFactory factory of the java kafka consumer instance which will used
- *                        for poll kafka.
- * @param commitStrategy  describes when consumed records should be committed.
- * @param shutdownHook    function which will be invoked before JVM has been shut down
- *                        for every polling.
- * @tparam K type of the key.
- * @tparam V type of the value.
- */
-class KafkaConsumer[K, V] private[kafka](
-  consumerFactory: () => Consumer[K, V],
-  commitStrategy: CommitStrategy,
-  shutdownHook: Option[(Polling) => Runnable] = None
-) {
+  * This implementation allows you to receive messages from kafka and handle every message in one thread.
+  *
+  * @param consumerFactory factory of the java kafka consumer instance which will used
+  *                        for poll kafka.
+  * @param commitStrategy  describes when consumed records should be committed.
+  * @param shutdownHook    function which will be invoked before JVM has been shut down
+  *                        for every polling.
+  * @tparam K type of the key.
+  * @tparam V type of the value.
+  */
+class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
+                                          commitStrategy: CommitStrategy,
+                                          shutdownHook: Option[(Polling) => Runnable] = None) {
 
   /**
-   * Start poll kafka from specified topics in the new thread and invoke handler for each records
-   * which will be received from kafka after poll. Empty iterator will be skipped.
-   *
-   * @param topics         the list of topics to subscribe to
-   * @param pollingTimeout the time, in milliseconds, spent waiting in poll if data is not available.
-   *                       If 0, returns immediately with any records that are available now.
-   *                       Must not be negative. Default is 300 ms.
-   * @param handler        function for handle records which polled from kafka.
-   *
-   * @return [[KafkaConsumer.Polling]] which indicate polling process.
-   *         Invoke stop method of this trait to break current poll.
-   */
-  def poll(topics: Seq[String], pollingTimeout: Duration = 300.milliseconds)
-    (handler: RecordHandler[K, V]): KafkaConsumer.Polling = {
+    * Start poll kafka from specified topics in the new thread and invoke handler for each records
+    * which will be received from kafka after poll. Empty iterator will be skipped.
+    *
+    * @param topics         the list of topics to subscribe to
+    * @param pollingTimeout the time, in milliseconds, spent waiting in poll if data is not available.
+    *                       If 0, returns immediately with any records that are available now.
+    *                       Must not be negative. Default is 300 ms.
+    * @param handler        function for handle records which polled from kafka.
+    *
+    * @return [[KafkaConsumer.Polling]] which indicate polling process.
+    *         Invoke stop method of this trait to break current poll.
+    */
+  def poll(topics: Seq[String], pollingTimeout: Duration = 300.milliseconds)(
+      handler: RecordHandler[K, V]
+  ): KafkaConsumer.Polling = {
     val consumer = consumerFactory.apply()
     consumer.subscribe(topics.asJava)
-    val polling = new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
+    val polling =
+      new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
     shutdownHook.foreach { hook =>
       val t = new Thread(hook(polling))
       t.setName(s"shutdown-hook-[${topics.mkString(";")}]")
@@ -57,12 +57,11 @@ class KafkaConsumer[K, V] private[kafka](
     polling
   }
 
-  private class PollingImpl(
-    consumer: FutureConsumer[K, V],
-    topics: Seq[String],
-    pollingTimeout: Long,
-    handler: RecordHandler[K, V]
-  ) extends KafkaConsumer.Polling {
+  private class PollingImpl(consumer: FutureConsumer[K, V],
+                            topics: Seq[String],
+                            pollingTimeout: Long,
+                            handler: RecordHandler[K, V])
+      extends KafkaConsumer.Polling {
 
     import ru.dokwork.easy.kafka.KafkaConsumer.executor
 
@@ -70,10 +69,7 @@ class KafkaConsumer[K, V] private[kafka](
     private val isStarted = new AtomicBoolean(true)
 
     // initialization of this value begins a polling
-    private val polling: Future[Unit] = pollKafka().transform { f =>
-      consumer.close()
-      f
-    }
+    private val polling: Future[Unit] = pollKafka().transform(_ => consumer.close(), e => e)
 
     private def pollKafka(): Future[Unit] = {
       if (isStarted.get) {
@@ -82,7 +78,7 @@ class KafkaConsumer[K, V] private[kafka](
           .flatMap(commitIfNeed)
           .flatMap(_ => pollKafka())
       } else {
-        Future.unit
+        F.unit
       }
     }
 
@@ -97,7 +93,8 @@ class KafkaConsumer[K, V] private[kafka](
 
     private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = {
       consumer.poll(pollingTimeout).map { recs =>
-        if (recs.isEmpty) log.trace("received nothing") else log.debug(s"received ${recs.count()} records")
+        if (recs.isEmpty) log.trace("received nothing")
+        else log.debug(s"received ${recs.count()} records")
         recs.iterator().asScala
       }
     }
@@ -121,39 +118,40 @@ class KafkaConsumer[K, V] private[kafka](
       s"ConsumerRecord(topic = $topic, partition = $partition, offset = $offset, key = $key, value = $value)"
     }
 
-    private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] = commitStrategy match {
-      case CommitEveryPollStrategy if records.nonEmpty =>
-        val beginTime = Deadline.now
-        log.debug(s"Begin commit records ${records.mkString("; ")} at $beginTime")
-        val commit = consumer.commit()
-        commit.onComplete(_ =>
-          log.debug(s"Records successful committed in ${Deadline.now - beginTime}")
-        )
-        commit
-      case _ =>
-        Future.unit
-    }
+    private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] =
+      commitStrategy match {
+        case CommitEveryPollStrategy if records.nonEmpty =>
+          val beginTime = Deadline.now
+          log.debug(s"Begin commit records ${records.mkString("; ")} at $beginTime")
+          val commit = consumer.commit()
+          commit.onComplete(
+            _ => log.debug(s"Records successful committed in ${Deadline.now - beginTime}")
+          )
+          commit
+        case _ =>
+          F.unit
+      }
 
     /**
-     * @inheritdoc
-     */
+      * @inheritdoc
+      */
     override def ready(atMost: Duration)(implicit permit: CanAwait): PollingImpl.this.type = {
       polling.ready(atMost)
       this
     }
 
     /**
-     * @inheritdoc
-     */
+      * @inheritdoc
+      */
     override def result(atMost: Duration)(implicit permit: CanAwait): Unit = {
       polling.result(atMost)
     }
 
     /**
-     * Stop fetch data from kafka and close consumer.
-     *
-     * @return future that will be completed after last polling completed.
-     */
+      * Stop fetch data from kafka and close consumer.
+      *
+      * @return future that will be completed after last polling completed.
+      */
     override def stop(): Future[Unit] = {
       if (isStarted.compareAndSet(true, false)) {
         log.info(s"Stop polling topics [${topics.mkString(", ")}]")
@@ -168,11 +166,15 @@ class KafkaConsumer[K, V] private[kafka](
 object KafkaConsumer {
 
   private[kafka] implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(
-    Executors.newCachedThreadPool((r: Runnable) => new Thread(r) {
-      val threadNumber = new AtomicInteger(0)
-      setName("kafka-consumer-thread-" + threadNumber.incrementAndGet())
-      setDaemon(true)
-    })
+    Executors.newCachedThreadPool(
+      new ThreadFactory {
+        override def newThread(r: Runnable): Thread = new Thread(r) {
+          val threadNumber = new AtomicInteger(0)
+          setName("kafka-consumer-thread-" + threadNumber.incrementAndGet())
+          setDaemon(true)
+        }
+      }
+    )
   )
 
   type RecordHandler[K, V] = (ConsumerRecord[K, V]) => Future[Unit]
@@ -180,33 +182,32 @@ object KafkaConsumer {
   type OffsetMap = util.Map[TopicPartition, OffsetAndMetadata]
 
   /**
-   * Polling is a trait which represent async process of consuming records from the kafka.
-   * This process can be awaited or stopped.
-   */
+    * Polling is a trait which represent async process of consuming records from the kafka.
+    * This process can be awaited or stopped.
+    */
   trait Polling extends Awaitable[Unit] with Stoppable
 
   /**
-   * Specifies condition for commit to the kafka.
-   */
+    * Specifies condition for commit to the kafka.
+    */
   sealed trait CommitStrategy
 
   /**
-   * Enable automatic offset committing.
-   *
-   * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
-   */
+    * Enable automatic offset committing.
+    *
+    * @see <a href="https://kafka.apache.org/documentation/#configuration">enable.auto.commit</a>
+    */
   case class AutoCommitStrategy(interval: FiniteDuration) extends CommitStrategy
 
   /**
-   * If this strategy selected then all records which were polled and successfully handled
-   * will be committed before next poll.
-   */
+    * If this strategy selected then all records which were polled and successfully handled
+    * will be committed before next poll.
+    */
   case object CommitEveryPollStrategy extends CommitStrategy
 
   /**
-   * If this strategy selected then nothing will be committed.
-   */
+    * If this strategy selected then nothing will be committed.
+    */
   case object NotCommitStrategy extends CommitStrategy
 
 }
-
