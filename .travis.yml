@@ -35,7 +35,6 @@ script:
 
 after_success:
   - sbt coverageReport coveralls
-  - sbt clean compile publish
 
 notifications:
   email:

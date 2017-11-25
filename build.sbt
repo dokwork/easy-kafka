@@ -3,7 +3,6 @@ lazy val easyKafka = (project in file("."))
   .settings(Defaults.itSettings: _*)
   .settings(
     name := "easy-kafka",
-    version := "0.1.0-SNAPSHOT",
     organization := "ru.dokwork",
     scalaVersion := "2.12.4",
     crossScalaVersions := Seq("2.11.11", "2.12.4"),
@@ -20,6 +19,8 @@ lazy val easyKafka = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it",
       "org.apache.kafka" % "kafka-clients" % "0.11.0.1" % "test, it"
     ),
+    releaseCrossBuild := true,
+    releaseProcess := Release.default,
     licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
     pomExtra :=
       <developers>
