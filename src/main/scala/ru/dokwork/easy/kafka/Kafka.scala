@@ -2,7 +2,8 @@ package ru.dokwork.easy.kafka
 
 import ru.dokwork.easy.kafka.configuration.{
   KafkaConsumerConfiguration,
-  KafkaProducerConfiguration
+  KafkaProducerConfiguration,
+  Undefined
 }
 
 /**
@@ -18,7 +19,8 @@ object Kafka {
       * @tparam K type of the key of the records in kafka.
       * @tparam V type of the value of the records in kafka.
       */
-    def apply[K, V] = KafkaProducerConfiguration[K, V]()
+    def apply[K, V]: KafkaProducerConfiguration[K, V, Undefined, Undefined, Undefined] =
+      KafkaProducerConfiguration[K, V]()
   }
 
   object consumer {
@@ -29,7 +31,8 @@ object Kafka {
       * @tparam K type of the key of the records in kafka.
       * @tparam V type of the value of the records in kafka.
       */
-    def apply[K, V] = KafkaConsumerConfiguration[K, V]()
+    def apply[K, V]: KafkaConsumerConfiguration[K, V, Undefined, Undefined, Undefined, Undefined] =
+      KafkaConsumerConfiguration[K, V]()
   }
 
 }

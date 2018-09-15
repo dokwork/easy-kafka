@@ -28,7 +28,6 @@ package object configuration {
 
   implicit def tpEquals[A]: A is A = singleton_is.asInstanceOf[A is A]
 
-  // Магия для более точного текста ошибки компиляции
   @implicitNotFound("KafkaClient is not completely configured: ${A}")
   sealed abstract class is[A, B]
 
@@ -92,7 +91,7 @@ package object configuration {
     )
   }
 
-  case class ShutdownHook(hook: Option[(Polling) ⇒ Runnable])
+  case class ShutdownHook(hook: Option[Polling ⇒ Runnable])
 
   implicit object ShutdownHook extends Parameter[ShutdownHook] {
     override lazy val default: ShutdownHook = ShutdownHook(None)

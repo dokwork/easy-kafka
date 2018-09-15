@@ -4,8 +4,7 @@ lazy val easyKafka = (project in file("."))
   .settings(
     name := "easy-kafka",
     organization := "ru.dokwork",
-    scalaVersion := "2.11.11",
-    crossScalaVersions := Seq("2.11.11", "2.12.4"),
+    scalaVersion := "2.12.5",
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
     libraryDependencies ++= Seq(
       // typesafe:

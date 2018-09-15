@@ -26,7 +26,9 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
     * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
     * to the Kafka cluster. Must be defined.
     */
-  def withBootstrapServers(bootstrapServers: ⇒ Seq[String]) = {
+  def withBootstrapServers(
+      bootstrapServers: ⇒ Seq[String]
+  ): KafkaProducerConfiguration[K, V, Defined, KS, VS] = {
     val p = params.get[BootstrapServers].copy(bootstrapServers)
     configure(params + p)
       .asInstanceOf[KafkaProducerConfiguration[K, V, Defined, KS, VS]]
@@ -35,7 +37,9 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
   /**
     * Specifies a serializer for the kafka records keys. Must be defined.
     */
-  def withKeySerializer(keySerializer: Serializer[K]) = {
+  def withKeySerializer(
+      keySerializer: Serializer[K]
+  ): KafkaProducerConfiguration[K, V, BS, Defined, VS] = {
     configure(params, keySerializer, valueSerializer)
       .asInstanceOf[KafkaProducerConfiguration[K, V, BS, Defined, VS]]
   }
@@ -43,7 +47,9 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
   /**
     * Specifies a serializer for the kafka records values. Must be defined.
     */
-  def withValueSerializer(valueSerializer: Serializer[V]) = {
+  def withValueSerializer(
+      valueSerializer: Serializer[V]
+  ): KafkaProducerConfiguration[K, V, BS, KS, Defined] = {
     configure(params, keySerializer, valueSerializer)
       .asInstanceOf[KafkaProducerConfiguration[K, V, BS, KS, Defined]]
   }
@@ -51,7 +57,7 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
   /**
     * Adds the client id to the kafka properties.
     */
-  def withClientId(clientId: String) = {
+  def withClientId(clientId: String): KafkaProducerConfiguration[K, V, BS, KS, VS] = {
     val p = params.get[ClientId].copy(Some(clientId))
     configure(params + p)
   }
@@ -76,16 +82,18 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
     new KafkaProducer[K, V](producer)
   }
 
-  override protected def configure(params: Parameters) = {
-    configure[BS, KS, VS](params, keySerializer, valueSerializer)
+  override protected def configure(
+      params: Parameters
+  ): KafkaProducerConfiguration[K, V, BS, KS, VS] = {
+    configure(params, keySerializer, valueSerializer)
   }
 
-  protected def configure[BS1 <: IsDefined, KS1 <: IsDefined, VS1 <: IsDefined](
+  protected def configure(
       params: Parameters,
       keySerializer: Serializer[K],
       valueSerializer: Serializer[V]
-  ): KafkaProducerConfiguration[K, V, BS1, KS1, VS1] = {
-    new KafkaProducerConfiguration[K, V, BS1, KS1, VS1](params, keySerializer, valueSerializer)
+  ): KafkaProducerConfiguration[K, V, BS, KS, VS] = {
+    new KafkaProducerConfiguration[K, V, BS, KS, VS](params, keySerializer, valueSerializer)
   }
 }
 
