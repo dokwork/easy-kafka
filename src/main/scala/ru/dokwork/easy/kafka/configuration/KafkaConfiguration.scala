@@ -37,8 +37,8 @@ trait KafkaConfiguration[K, V, C <: KafkaConfiguration[K, V, C]] {
     import scala.collection.JavaConverters._
 
     def convertToProperties(param: (Parameter[_], Any)) = param match {
-      case (_, p: AsProperty) => p.asProperties
-      case _                  => Seq.empty
+      case (_, p: AsProperty) ⇒ p.asProperties
+      case _                  ⇒ Seq.empty
     }
 
     val props = params.get[Properties].properties ++ params.view.flatMap(convertToProperties)

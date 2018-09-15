@@ -1,6 +1,6 @@
 package ru.dokwork.easy.kafka.configuration
 
-import org.apache.kafka.clients.{ producer => kafka }
+import org.apache.kafka.clients.{ producer ⇒ kafka }
 import org.apache.kafka.common.serialization.Serializer
 import ru.dokwork.easy.kafka.KafkaProducer
 
@@ -26,7 +26,7 @@ class KafkaProducerConfiguration[K, V, BS <: IsDefined, KS <: IsDefined, VS <: I
     * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
     * to the Kafka cluster. Must be defined.
     */
-  def withBootstrapServers(bootstrapServers: => Seq[String]) = {
+  def withBootstrapServers(bootstrapServers: ⇒ Seq[String]) = {
     val p = params.get[BootstrapServers].copy(bootstrapServers)
     configure(params + p)
       .asInstanceOf[KafkaProducerConfiguration[K, V, Defined, KS, VS]]

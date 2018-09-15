@@ -24,7 +24,7 @@ private[kafka] class FutureConsumer[K, V](consumer: Consumer[K, V]) {
       try {
         consumer.poll(timeout)
       } catch {
-        case _: WakeupException =>
+        case _: WakeupException ⇒
           new ConsumerRecords[K, V](Collections.emptyMap())
       }
     }

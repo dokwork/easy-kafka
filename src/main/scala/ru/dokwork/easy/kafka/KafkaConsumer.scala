@@ -25,9 +25,9 @@ import scala.util.{ Failure, Success }
   * @tparam K type of the key.
   * @tparam V type of the value.
   */
-class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
+class KafkaConsumer[K, V] private[kafka] (consumerFactory: () ⇒ Consumer[K, V],
                                           commitStrategy: CommitStrategy,
-                                          shutdownHook: Option[(Polling) => Runnable] = None) {
+                                          shutdownHook: Option[(Polling) ⇒ Runnable] = None) {
 
   /**
     * Start poll kafka from specified topics in the new thread and invoke handler for each records
@@ -49,7 +49,7 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
     consumer.subscribe(topics.asJava)
     val polling =
       new PollingImpl(new FutureConsumer(consumer), topics, pollingTimeout.toMillis, handler)
-    shutdownHook.foreach { hook =>
+    shutdownHook.foreach { hook ⇒
       val t = new Thread(hook(polling))
       t.setName(s"shutdown-hook-[${topics.mkString(";")}]")
       Runtime.getRuntime.addShutdownHook(t)
@@ -70,22 +70,22 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
 
     // initialization of this value begins a polling
     private val polling: Future[Unit] = pollKafka()
-      .transform(_ => consumer.close(), e => { consumer.close(); e })
+      .transform(_ ⇒ consumer.close(), e ⇒ { consumer.close(); e })
 
     private def pollKafka(): Future[Unit] = {
       if (isStarted.get) {
         pollOnce()
-          .flatMap(itr => whileDo(itr.hasNext && isStarted.get)(handleWithLogging(itr.next)))
+          .flatMap(itr ⇒ whileDo(itr.hasNext && isStarted.get)(handleWithLogging(itr.next)))
           .flatMap(commitIfNeed)
-          .flatMap(_ => pollKafka())
+          .flatMap(_ ⇒ pollKafka())
       } else {
         F.unit
       }
     }
 
-    private def whileDo[A](condition: => Boolean)(f: => Future[A]): Future[Seq[A]] = {
+    private def whileDo[A](condition: ⇒ Boolean)(f: ⇒ Future[A]): Future[Seq[A]] = {
       def loop(acc: Seq[A]): Future[Seq[A]] = {
-        if (condition) f.flatMap(a => loop(acc :+ a))
+        if (condition) f.flatMap(a ⇒ loop(acc :+ a))
         else Future.successful(acc)
       }
 
@@ -93,7 +93,7 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
     }
 
     private def pollOnce(): Future[Iterator[ConsumerRecord[K, V]]] = {
-      consumer.poll(pollingTimeout).map { recs =>
+      consumer.poll(pollingTimeout).map { recs ⇒
         if (recs.isEmpty) log.trace("received nothing")
         else log.debug(s"received ${recs.count()} records")
         recs.iterator().asScala
@@ -102,12 +102,12 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
 
     private def handleWithLogging(record: ConsumerRecord[K, V]): Future[ConsumerRecord[K, V]] = {
       log.trace(s"begin handling ${format(record)}")
-      val result = handler.apply(record).map(_ => record)
+      val result = handler.apply(record).map(_ ⇒ record)
       if (log.underlying.isTraceEnabled) {
         result.onComplete {
-          case Success(_) =>
+          case Success(_) ⇒
             log.trace(s"handling ${format(record)} completed successful")
-          case Failure(e) =>
+          case Failure(e) ⇒
             log.trace(s"handling ${format(record)} failed: $e")
         }
       }
@@ -121,15 +121,15 @@ class KafkaConsumer[K, V] private[kafka] (consumerFactory: () => Consumer[K, V],
 
     private def commitIfNeed(records: Seq[ConsumerRecord[K, V]]): Future[Unit] =
       commitStrategy match {
-        case CommitEveryPollStrategy if records.nonEmpty =>
+        case CommitEveryPollStrategy if records.nonEmpty ⇒
           val beginTime = Deadline.now
           log.debug(s"Begin commit records ${records.mkString("; ")} at $beginTime")
           val commit = consumer.commit()
           commit.onComplete(
-            _ => log.debug(s"Records successful committed in ${Deadline.now - beginTime}")
+            _ ⇒ log.debug(s"Records successful committed in ${Deadline.now - beginTime}")
           )
           commit
-        case _ =>
+        case _ ⇒
           F.unit
       }
 
@@ -178,7 +178,7 @@ object KafkaConsumer {
     )
   )
 
-  type RecordHandler[K, V] = (ConsumerRecord[K, V]) => Future[Unit]
+  type RecordHandler[K, V] = (ConsumerRecord[K, V]) ⇒ Future[Unit]
 
   type OffsetMap = util.Map[TopicPartition, OffsetAndMetadata]
 

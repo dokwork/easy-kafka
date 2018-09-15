@@ -14,7 +14,7 @@ object Parameters {
   private case class Params(params: Map[Parameter[_], Any]) extends Parameters {
     def get[A](implicit p: Parameter[A]): A = params.getOrElse(p, p.default).asInstanceOf[A]
     def +[A](value: A)(implicit p: Parameter[A]): Parameters = {
-      copy(params + (p -> value))
+      copy(params + (p → value))
     }
     def iterator: Iterator[(Parameter[_], Any)] = params.iterator
   }

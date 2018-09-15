@@ -40,7 +40,7 @@ package object configuration {
 
   case class BootstrapServers(servers: Seq[String]) extends AsProperty {
     override def asProperties: Seq[(String, String)] =
-      Seq("bootstrap.servers" -> servers.mkString(","))
+      Seq("bootstrap.servers" → servers.mkString(","))
   }
 
   implicit object BootstrapServers extends Parameter[BootstrapServers] {
@@ -48,7 +48,7 @@ package object configuration {
   }
 
   case class ClientId(clientId: Option[String]) extends AsProperty {
-    override def asProperties: Seq[(String, String)] = clientId.map(id => ("client.id", id)).toList
+    override def asProperties: Seq[(String, String)] = clientId.map(id ⇒ ("client.id", id)).toList
   }
 
   implicit object ClientId extends Parameter[ClientId] {
@@ -56,7 +56,7 @@ package object configuration {
   }
 
   case class GroupId(groupId: Option[String]) extends AsProperty {
-    override def asProperties: Seq[(String, String)] = groupId.map(id => ("group.id", id)).toList
+    override def asProperties: Seq[(String, String)] = groupId.map(id ⇒ ("group.id", id)).toList
   }
 
   implicit object GroupId extends Parameter[GroupId] {
@@ -65,13 +65,13 @@ package object configuration {
 
   case class CommitStrategy(strategy: KafkaConsumer.CommitStrategy) extends AsProperty {
     override def asProperties: Seq[(String, String)] = strategy match {
-      case AutoCommitStrategy(interval) =>
+      case AutoCommitStrategy(interval) ⇒
         Seq(
-          "enable.auto.commit" -> "true",
-          "auto.commit.interval.ms" -> interval.toMillis.toString
+          "enable.auto.commit" → "true",
+          "auto.commit.interval.ms" → interval.toMillis.toString
         )
-      case _ =>
-        Seq("enable.auto.commit" -> "false")
+      case _ ⇒
+        Seq("enable.auto.commit" → "false")
     }
   }
 
@@ -83,7 +83,7 @@ package object configuration {
   case class OffsetResetStrategy(offsetResetStrategy: consumer.OffsetResetStrategy)
       extends AsProperty {
     override def asProperties: Seq[(String, String)] =
-      Seq("auto.offset.reset" -> offsetResetStrategy.toString.toLowerCase())
+      Seq("auto.offset.reset" → offsetResetStrategy.toString.toLowerCase())
   }
 
   implicit object OffsetResetStrategy extends Parameter[OffsetResetStrategy] {
@@ -92,7 +92,7 @@ package object configuration {
     )
   }
 
-  case class ShutdownHook(hook: Option[(Polling) => Runnable])
+  case class ShutdownHook(hook: Option[(Polling) ⇒ Runnable])
 
   implicit object ShutdownHook extends Parameter[ShutdownHook] {
     override lazy val default: ShutdownHook = ShutdownHook(None)

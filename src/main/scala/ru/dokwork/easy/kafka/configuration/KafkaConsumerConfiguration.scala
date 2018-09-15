@@ -1,6 +1,6 @@
 package ru.dokwork.easy.kafka.configuration
 
-import org.apache.kafka.clients.{ consumer => kafka }
+import org.apache.kafka.clients.{ consumer ⇒ kafka }
 import org.apache.kafka.common.serialization.Deserializer
 import ru.dokwork.easy.kafka.{ KafkaConsumer, configuration }
 import ru.dokwork.easy.kafka.KafkaConsumer._
@@ -35,7 +35,7 @@ final class KafkaConsumerConfiguration[K,
     * Specifies the list of "host:port" pairs which will be used for establishing the initial connection
     * to the Kafka cluster. Must be defined.
     */
-  def withBootstrapServers(bootstrapServers: => Seq[String]) = {
+  def withBootstrapServers(bootstrapServers: ⇒ Seq[String]) = {
     val p = params.get[configuration.BootstrapServers].copy(bootstrapServers)
     configure(params + p, keyDeserializer, valueDeserializer)
       .asInstanceOf[KafkaConsumerConfiguration[K, V, Defined, KD, VD, GID]]
@@ -116,7 +116,7 @@ final class KafkaConsumerConfiguration[K,
     * @param closeTimeout max time to wait polling.
     */
   def finalizeEveryPollWithin(closeTimeout: Duration): CurrentConfiguration = {
-    val hook = (p: Polling) =>
+    val hook = (p: Polling) ⇒
       new Runnable {
         override def run(): Unit = Await.result(p.stop(), closeTimeout)
     }
@@ -156,7 +156,7 @@ final class KafkaConsumerConfiguration[K,
   ): KafkaConsumer[K, V] = {
     require(keyDeserializer ne null)
     require(valueDeserializer ne null)
-    val factory = () => {
+    val factory = () ⇒ {
       new kafka.KafkaConsumer[K, V](
         properties(),
         keyDeserializer,
